@@ -1,0 +1,21 @@
+# NX789J - expose the auxiliary cameras (ultrawide etc.) to LineageOS's camera app.
+#
+# The QTI camera HAL only exposes aux cameras to packages listed in these
+# properties. Stock vendor/build.prop:130-132 lists ZTE/QTI apps only:
+#   com.android.camera,com.zte.burntest.camera,org.codeaurora.snapcam,com.zte.zftdoctor
+# so Aperture (org.lineageos.aperture) saw 2 cameras on first boot.
+#
+# Set from init rather than a .prop file: vendor/build.prop is loaded AFTER
+# system_ext, so a system-side prop could never override it. All build.prop files
+# are loaded before any trigger fires, and early-init runs before the camera
+# provider starts, so this wins.
+#
+# Non-ro properties are capped at PROP_VALUE_MAX (92 incl. NUL, i.e. 91 chars) -
+# host_init_verifier rejected stock's list + Aperture (106 chars) at build time
+# with "Property value too long". The two ZTE factory-test apps
+# (com.zte.burntest.camera, com.zte.zftdoctor) are not on LineageOS, so they are
+# dropped rather than any real client.
+on early-init
+    setprop vendor.camera.aux.packagelist "com.android.camera,org.codeaurora.snapcam,org.lineageos.aperture"
+    setprop persist.camera.privapp.list "com.android.camera,org.codeaurora.snapcam,org.lineageos.aperture"
+    setprop persist.vendor.camera.privapp.list "com.android.camera,org.codeaurora.snapcam,org.lineageos.aperture"

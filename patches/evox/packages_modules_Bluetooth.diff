@@ -1,0 +1,98 @@
+diff --git a/system/bta/le_audio/client.cc b/system/bta/le_audio/client.cc
+index abb610a..377cccc 100644
+--- a/system/bta/le_audio/client.cc
++++ b/system/bta/le_audio/client.cc
+@@ -1499,6 +1499,22 @@ public:
+     return in_call_;
+   }
+ 
++  /* The Qualcomm offload Audio HAL does not always send empty sink metadata when a call record
++   * track goes away (e.g. a WhatsApp call whose microphone never ran over LE Audio). The stale
++   * CONVERSATIONAL decoding metadata then kept music on the call configuration (32 kHz mono)
++   * until the headset reconnected. Drop it once no call is going on and the local sink is idle.
++   */
++  void ClearStaleCallDecodingMetadata() {
++    if (!com_android_bluetooth_flags_leaudio_use_context_type_manager() || IsInCall() ||
++        IsInVoipCall() || audio_receiver_state_ != AudioState::IDLE ||
++        configuration_context_type_ != LeAudioContextType::CONVERSATIONAL) {
++      return;
++    }
++    log::info("Call is over and local sink is idle, clearing stale decoding metadata");
++    std::vector<record_track_metadata_v7> empty_tracks = {};
++    audioContextTypeManager_->SetDecodingSessionMetadata(empty_tracks);
++  }
++
+   void SetInVoipCall(bool in_call) override {
+     log::debug("in_voip_call: {}", in_call);
+     in_voip_call_ = in_call;
+@@ -3870,6 +3886,32 @@ public:
+     BTA_GATTC_DeregisterForNotifications(gatt_if_, leAudioDevice->address_, ase_it->hdls.val_hdl);
+   }
+ 
++  static bool IsCodecCompatibleWithRunningStream(LeAudioDeviceGroup* group,
++                                                  const bluetooth::le_audio::types::AudioSetConfiguration& conf) {
++    for (auto direction : {bluetooth::le_audio::types::kLeAudioDirectionSink,
++                           bluetooth::le_audio::types::kLeAudioDirectionSource}) {
++      const auto& params = group->stream_conf.stream_params.get(direction);
++      if (params.num_of_devices == 0) {
++        continue;
++      }
++      const auto& running = params.stream_config;
++      for (const auto& ent : conf.confs.get(direction)) {
++        const auto& core = ent.codec.params.GetAsCoreCodecConfig();
++        if ((core.sampling_frequency && running.sampling_frequency_hz &&
++             core.GetSamplingFrequencyHz() != running.sampling_frequency_hz) ||
++            (core.frame_duration && running.frame_duration_us &&
++             core.GetFrameDurationUs() != running.frame_duration_us) ||
++            (core.octets_per_codec_frame && running.octets_per_codec_frame &&
++             *core.octets_per_codec_frame != running.octets_per_codec_frame) ||
++            (core.codec_frames_blocks_per_sdu && running.codec_frames_blocks_per_sdu &&
++             *core.codec_frames_blocks_per_sdu != running.codec_frames_blocks_per_sdu)) {
++          return false;
++        }
++      }
++    }
++    return true;
++  }
++
+   void AttachToStreamingGroupIfNeeded(LeAudioDevice* leAudioDevice) {
+     if (leAudioDevice->group_id_ != active_group_id_) {
+       log::info("group  {} is not streaming. Nothing to do", leAudioDevice->group_id_);
+@@ -3933,6 +3975,20 @@ public:
+       }
+     }
+ 
++    /* With this member added the group may need a different codec setting than the one the
++     * other member(s) are streaming now (e.g. one earbud alone on 155 octets per frame, the pair
++     * on 120). AttachToStream would configure only the new member, and adding its CIS then trips
++     * the octets-per-frame assert in the state machine, which aborts the Bluetooth process.
++     * Reconfigure the whole group instead. */
++    group->InvalidateCachedConfigurations();
++    auto attach_conf = group->GetConfiguration(group->GetConfigurationContextType());
++    if (attach_conf && !IsCodecCompatibleWithRunningStream(group, *attach_conf)) {
++      log::info("{} needs a different codec setting than the running stream, reconfiguring",
++                leAudioDevice->address_);
++      initReconfiguration(group, configuration_context_type_);
++      return;
++    }
++
+     /* Do not put the TBS CCID when not using Telecom for the VoIP calls. */
+     auto ccid_contexts = group->GetMetadataContexts();
+     if (IsInVoipCall() && !IsInCall()) {
+@@ -4990,6 +5046,8 @@ public:
+     }
+     auto upcoming_configuration_context_type = configuration_context_type_;
+ 
++    ClearStaleCallDecodingMetadata();
++
+     if (com_android_bluetooth_flags_leaudio_use_context_type_manager()) {
+       /* Get configuration context type from the audioContextTypeManager only when it is unknown */
+       auto [new_context_type, _] = audioContextTypeManager_->GetAudioContextsForTheGroup(
+@@ -5662,6 +5720,7 @@ public:
+     }
+ 
+     audioContextTypeManager_->SetEncodingSessionMetadata(source_metadata);
++    ClearStaleCallDecodingMetadata();
+ 
+     log::info(
+             "group_id {} state={}, target_state={}, audio_receiver_state_: {}, "

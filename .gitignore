@@ -1,0 +1,5 @@
+*.bak
+*.bak[0-9]*
+security/
+nubiacamera/proprietary/*.apk
+dts/proprietary/*.apk

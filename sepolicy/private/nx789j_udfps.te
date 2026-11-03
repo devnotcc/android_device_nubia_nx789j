@@ -1,0 +1,12 @@
+# UDFPS global HBM: SurfaceFlinger writes /proc/driver/lcd_hbm (patched SF,
+# ro.surface_flinger.udfps_hbm_node). The stock vendor policy already allows
+# surfaceflinger/system_app -> proc_ztelcd_set { open write }, but the node is
+# created root:root 0664, so nx789j-fingerprint.rc must chown it to system at
+# boot - and init was denied that:
+#   avc: denied { setattr } comm="init" name="lcd_hbm"
+#        tcontext=u:object_r:proc_ztelcd_set:s0
+# (On LineageOS this was covered by the KSU module nx789j_sepolicy, which a data
+# format wipes.) proc_ztelcd_set is a vendor type the platform policy cannot name,
+# but the vendor tags it proc_type, so grant init setattr on proc_type files -
+# the same kind of rule AOSP already has for proc_pressure_mem.
+allow init proc_type:file setattr;

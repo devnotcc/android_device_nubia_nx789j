@@ -1,0 +1,6 @@
+# Property source order, verbatim from stock
+ro.product.property_source_order=odm,vendor,product,system_ext,system
+
+# Display
+vendor.display.enable_display_extensions=1
+vendor.display.disable_rounded_corner=1

@@ -1,0 +1,115 @@
+//
+// SPDX-FileCopyrightText: The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+// Qualcomm IMS / telephony apps from the stock system_ext (EDL dump 2026-09-12),
+// the set LineageOS ships on QCOM devices (cf. xiaomi sm8550-common
+// "# IMS (system)" and "# RIL"). The vendor side (imsdaemon, ims_rtp_daemon,
+// IImsRadio) comes with the stock vendor image. The open-source halves
+// (ims-ext-common, extphonelib, qti-telephony-*) build from vendor/codeaurora/telephony.
+// The APKs are stock with only the QSPA gate re-pointed (tools/qti-telephony/patch-qspa.py,
+// ro.system_ext.nx789j.qspa in properties/system_ext.prop).
+// SELinux: system_ext_seapp_contexts already maps org.codeaurora.ims, com.qti.phone
+// and com.qualcomm.qti.telephonyservice to vendor_qtelephony.
+
+android_app_import {
+    name: "ims",
+    apk: "proprietary/system_ext/priv-app/ims/ims.apk",
+    certificate: "platform",
+    privileged: true,
+    system_ext_specific: true,
+    dex_preopt: {
+        enabled: false,
+    },
+    required: [
+        "QtiTelephonyCompat",
+        "libimscamera_jni",
+        "libimsmedia_jni",
+    ],
+}
+
+android_app_import {
+    name: "QtiTelephony",
+    apk: "proprietary/system_ext/priv-app/QtiTelephony/QtiTelephony.apk",
+    certificate: "platform",
+    privileged: true,
+    system_ext_specific: true,
+    dex_preopt: {
+        enabled: false,
+    },
+    required: [
+        "QtiTelephonyCompat",
+        "qcrilhook",
+    ],
+}
+
+android_app_import {
+    name: "QtiTelephonyService",
+    apk: "proprietary/system_ext/app/QtiTelephonyService/QtiTelephonyService.apk",
+    certificate: "platform",
+    system_ext_specific: true,
+    dex_preopt: {
+        enabled: false,
+    },
+}
+
+android_app_import {
+    name: "qcrilmsgtunnel",
+    apk: "proprietary/system_ext/priv-app/qcrilmsgtunnel/qcrilmsgtunnel.apk",
+    certificate: "platform",
+    privileged: true,
+    system_ext_specific: true,
+    dex_preopt: {
+        enabled: false,
+    },
+}
+
+dex_import {
+    name: "qcrilhook",
+    jars: ["proprietary/system_ext/framework/qcrilhook.jar"],
+    system_ext_specific: true,
+    required: ["qcrilhook.xml"],
+}
+
+prebuilt_etc {
+    name: "qcrilhook.xml",
+    src: "proprietary/system_ext/etc/permissions/qcrilhook.xml",
+    sub_dir: "permissions",
+    system_ext_specific: true,
+}
+
+prebuilt_etc {
+    name: "telephony_system-ext_privapp-permissions-qti.xml",
+    src: "proprietary/system_ext/etc/permissions/telephony_system-ext_privapp-permissions-qti.xml",
+    sub_dir: "permissions",
+    system_ext_specific: true,
+}
+
+prebuilt_etc {
+    name: "qti_telephony_system_packages_config.xml",
+    src: "proprietary/system_ext/etc/sysconfig/qti_telephony_system_packages_config.xml",
+    sub_dir: "sysconfig",
+    system_ext_specific: true,
+}
+
+cc_prebuilt_library_shared {
+    name: "libimscamera_jni",
+    srcs: ["proprietary/system_ext/lib64/libimscamera_jni.so"],
+    compile_multilib: "64",
+    system_ext_specific: true,
+    check_elf_files: false,
+    strip: {
+        none: true,
+    },
+}
+
+cc_prebuilt_library_shared {
+    name: "libimsmedia_jni",
+    srcs: ["proprietary/system_ext/lib64/libimsmedia_jni.so"],
+    compile_multilib: "64",
+    system_ext_specific: true,
+    check_elf_files: false,
+    strip: {
+        none: true,
+    },
+}

@@ -1,0 +1,390 @@
+<!--
+    Device framework compatibility matrix.
+
+    The stock per-HAL VINTF fragments we ship declare 45 vendor-specific AIDL
+    instances (vendor.qti.*, vendor.zte.*). None of them exist in any AOSP
+    framework compatibility matrix, so check_vintf_all fails the build with
+      ERROR: files are incompatible: The following instances are in the device
+      manifest but not specified in framework compatibility matrix
+    checkvintf itself names the fix: declare device-specific HALs in
+    DEVICE_FRAMEWORK_COMPATIBILITY_MATRIX_FILE.
+
+    Every entry is optional="true". These are vendor HALs: the framework must
+    tolerate their absence, not require them. Marking any of them required would
+    turn a missing vendor service into a boot failure.
+
+    Generated from the checkvintf error output, not hand-written - the package,
+    interface, instance and version of each entry are exactly what the device
+    manifest declares.
+-->
+<compatibility-matrix version="1.0" type="framework">
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.ImsRtpService</name>
+        <version>1</version>
+        <interface>
+            <name>IRTPService</name>
+            <instance>ImsRtpService</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.data.dmapconsent</name>
+        <version>1</version>
+        <interface>
+            <name>IService</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.data.factoryservice</name>
+        <version>1</version>
+        <interface>
+            <name>IFactory</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.data.ntn</name>
+        <version>1</version>
+        <interface>
+            <name>IQmsSatelliteService</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.data.txpwrservice</name>
+        <version>7</version>
+        <interface>
+            <name>ITxPwrService</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.diaghal</name>
+        <version>1</version>
+        <interface>
+            <name>Idiag</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.gnss</name>
+        <version>7</version>
+        <interface>
+            <name>ILocAidlGnss</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.alarm</name>
+        <version>1</version>
+        <interface>
+            <name>IAlarm</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.bluetooth_sar</name>
+        <version>1</version>
+        <interface>
+            <name>IBluetoothSar</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.bttpi</name>
+        <version>3</version>
+        <interface>
+            <name>IBtTpi</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.cacertaidlservice</name>
+        <version>1</version>
+        <interface>
+            <name>IService</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.capabilityconfigstore</name>
+        <version>1</version>
+        <interface>
+            <name>ICapabilityConfigStore</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.dpmaidlservice</name>
+        <version>1</version>
+        <interface>
+            <name>IDpmService</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.dsp</name>
+        <version>1</version>
+        <interface>
+            <name>IDspService</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.embmssl</name>
+        <version>2</version>
+        <interface>
+            <name>IEmbms</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.hexlp</name>
+        <version>1</version>
+        <interface>
+            <name>IHexlpService</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.minkipcbinder</name>
+        <version>1</version>
+        <interface>
+            <name>IMinkServer</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.mwqemadapteraidlservice</name>
+        <version>1</version>
+        <interface>
+            <name>IMwqemAdapter</name>
+            <instance>MwqemAdapter</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.perf2</name>
+        <version>1</version>
+        <interface>
+            <name>IPerf</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.power.powermodule</name>
+        <version>1</version>
+        <interface>
+            <name>IPowerModule</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.qasr</name>
+        <version>1</version>
+        <interface>
+            <name>IQasr</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.qconfig</name>
+        <version>1</version>
+        <interface>
+            <name>IQConfig</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.qseecom</name>
+        <version>1</version>
+        <interface>
+            <name>IQSEECom</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.radio.internal.deviceinfo</name>
+        <version>1</version>
+        <interface>
+            <name>IDeviceInfo</name>
+            <instance>deviceinfo</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.radio.qtiradioconfig</name>
+        <version>6</version>
+        <interface>
+            <name>IQtiRadioConfig</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.sensorscalibrate</name>
+        <version>1</version>
+        <interface>
+            <name>ISensorsCalibrate</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.vpp</name>
+        <version>1</version>
+        <interface>
+            <name>IVppService</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.wifidisplaysession_aidl</name>
+        <version>1</version>
+        <interface>
+            <name>IWifiDisplaySession</name>
+            <instance>default</instance>
+        </interface>
+        <interface>
+            <name>IWifiDisplaySessionAudioTrack</name>
+            <instance>default</instance>
+        </interface>
+        <interface>
+            <name>IWifiDisplaySessionImageTrack</name>
+            <instance>default</instance>
+        </interface>
+        <interface>
+            <name>IWifiDisplaySessionVideoTrack</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.ims.datachannelservice</name>
+        <version>2</version>
+        <interface>
+            <name>IDataChannelService</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.ims.factoryaidlservice</name>
+        <version>1</version>
+        <interface>
+            <name>IImsFactory</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.ims.imscmaidlservice</name>
+        <version>1</version>
+        <interface>
+            <name>IImsCmService</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.ims.uceaidlservice</name>
+        <version>1</version>
+        <interface>
+            <name>IUceService</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.qccvndhal_aidl</name>
+        <version>1</version>
+        <interface>
+            <name>IQccvndhal</name>
+            <instance>qccvndhal</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.qesdhalaidl</name>
+        <version>2</version>
+        <interface>
+            <name>IQesdhal</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.qspmhal</name>
+        <version>1</version>
+        <interface>
+            <name>IQspmhal</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.snapdragonServices</name>
+        <version>1</version>
+        <interface>
+            <name>ISnapdragonServices</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.syshealthmon</name>
+        <version>1</version>
+        <interface>
+            <name>ISysHealthMon</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.zte.ldd.cmd</name>
+        <version>2</version>
+        <interface>
+            <name>IZteLddCmd</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.zte.nook.modem</name>
+        <version>1</version>
+        <interface>
+            <name>IModem</name>
+            <instance>instance0</instance>
+            <instance>instance1</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.zte.radio</name>
+        <version>1</version>
+        <interface>
+            <name>IVendorRadio</name>
+            <instance>slot1</instance>
+            <instance>slot2</instance>
+        </interface>
+    </hal>
+    <!-- Declared by vendor.qti.hardware.display.composer-service3_v3.xml, shipped
+         in build 16 so SurfaceFlinger can find the AIDL composer3. Versions copied
+         from that fragment (no <version> there means 1). -->
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.display.aiqe</name>
+        <version>2</version>
+        <interface>
+            <name>IDisplayAiqe</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.display.color</name>
+        <version>1</version>
+        <interface>
+            <name>IDisplayColor</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.display.config</name>
+        <version>12</version>
+        <interface>
+            <name>IDisplayConfig</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="aidl" optional="true">
+        <name>vendor.qti.hardware.display.postproc</name>
+        <version>1</version>
+        <interface>
+            <name>IDisplayPostproc</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+</compatibility-matrix>

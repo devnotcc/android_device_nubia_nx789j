@@ -1,0 +1,32 @@
+//
+// SPDX-FileCopyrightText: The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+// The stock fstab, byte-identical to vendor/etc/fstab.qcom out of the dump.
+// vendor_ramdisk_available generates the companion "fstab.qcom.vendor_ramdisk"
+// module, which is what puts the copy at first_stage_ramdisk/fstab.qcom in
+// vendor_boot - matching how the stock image is laid out.
+prebuilt_etc {
+    name: "fstab.qcom",
+    src: "etc/fstab.qcom",
+    vendor: true,
+    vendor_ramdisk_available: true,
+}
+
+// Vendor init fragment - see the file's own header for why it is installed to
+// /vendor/etc/init/ rather than /vendor/etc/init/hw/.
+prebuilt_etc {
+    name: "init.nx789j.rc",
+    src: "etc/init.nx789j.rc",
+    sub_dir: "init",
+    vendor: true,
+}
+
+// System-side init fixes for stock vendor services - see the file's header.
+prebuilt_etc {
+    name: "init.nx789j.system_ext.rc",
+    src: "etc/init.nx789j.system_ext.rc",
+    sub_dir: "init",
+    system_ext_specific: true,
+}

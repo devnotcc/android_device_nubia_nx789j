@@ -1,0 +1,14 @@
+//
+// SPDX-FileCopyrightText: The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+runtime_resource_overlay {
+    name: "NubiaCarrierConfigResTarget",
+    sdk_version: "current",
+    product_specific: true,
+    // Like packages/apps/CarrierConfig itself: keep mcc/mnc as written. Without it aapt2
+    // compiles mnc="01" to the integer 1, the "1" never matches the SIM's "01" and every
+    // zero-padded MNC block (Vodafone RO 226/01 among them) is silently ignored.
+    aaptflags: ["--keep-raw-values"],
+}

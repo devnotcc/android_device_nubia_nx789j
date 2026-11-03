@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     SPDX-FileCopyrightText: The LineageOS Project
+     SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <string name="app_name">RedMagic Tools</string>
+
+    <string name="perf_category">Performance</string>
+    <string name="perf_mode_title">Performance mode</string>
+    <string name="perf_mode_balanced">Balanced (stock, throttles from 43 °C)</string>
+    <string name="perf_mode_performance">Performance (faster ramp-up, throttles from 47 °C)</string>
+    <string name="perf_mode_extreme">Extreme (high clock floors, throttles from 52 °C)</string>
+    <string name="perf_mode_ultra">Ultra (clocks pinned at max, throttles from 60 °C)</string>
+    <string name="perf_status_title">Temperatures</string>
+    <string name="perf_status_battery_hot">Battery too hot: back on stock limits until it cools</string>
+    <string name="perf_status_temps">Skin %1$.1f °C, battery %2$.1f °C</string>
+
+    <string name="ambient_category">Ambient display</string>
+    <string name="aod_tap_title">Tap to show</string>
+    <string name="aod_tap_summary">When the always-on display is off, tap the dark screen to show the clock for a few seconds</string>
+    <string name="aod_lift_title">Lift to show</string>
+    <string name="aod_lift_summary">When the always-on display is off, pick up the phone to show the clock for a few seconds</string>
+    <string name="aod_schedule_title">Always-on display schedule</string>
+    <string name="aod_schedule_summary">Turn the always-on display off between the times below, and back on afterwards</string>
+    <string name="aod_schedule_start_title">Off from</string>
+    <string name="aod_schedule_end_title">Back on at</string>
+
+    <string name="charge_category">Charging</string>
+    <string name="charge_separation_title">Charge separation</string>
+    <string name="charge_separation_off">Off (charge normally)</string>
+    <string name="charge_separation_gaming">In games and raised performance modes</string>
+    <string name="charge_separation_always">Whenever a charger is connected</string>
+    <string name="charge_status_active">Running from the charger, battery idle</string>
+    <string name="charge_status_inactive">Charging normally</string>
+    <string name="charge_status_current">Battery current %1$d mA. Below 20%% the battery always charges.</string>
+
+    <string name="slider_category">Side slider</string>
+    <string name="slider_action_title">Slider action</string>
+    <string name="slider_state_on">Slider is on</string>
+    <string name="slider_state_off">Slider is off</string>
+    <string name="slider_action_none">Do nothing</string>
+    <string name="slider_action_fan">Turn the fan on</string>
+    <string name="slider_action_dnd">Do Not Disturb</string>
+    <string name="slider_action_torch">Flashlight</string>
+    <string name="slider_action_perf">Performance mode (the one selected above)</string>
+
+    <string name="fan_category">Cooling fan</string>
+    <string name="fan_manual_title">Fan on</string>
+    <string name="fan_manual_summary">Keep the fan running while the screen is on</string>
+    <string name="fan_level_title">Fan speed</string>
+    <string name="fan_games_title">Turn on in games</string>
+    <string name="fan_games_summary">Run the fan while an app from the Game Space list is on screen</string>
+    <string name="fan_charging_title">Turn on while fast charging</string>
+    <string name="fan_charging_summary">Run the fan while the battery charges at 15 W or more, even with the screen off</string>
+    <string name="fan_status_title">Status</string>
+    <string name="fan_status_off">Off</string>
+    <string name="fan_status_on">Level %1$d, %2$d RPM</string>
+
+    <string-array name="slider_action_entries">
+        <item>@string/slider_action_none</item>
+        <item>@string/slider_action_fan</item>
+        <item>@string/slider_action_dnd</item>
+        <item>@string/slider_action_torch</item>
+        <item>@string/slider_action_perf</item>
+    </string-array>
+    <string-array name="slider_action_values" translatable="false">
+        <item>none</item>
+        <item>fan</item>
+        <item>dnd</item>
+        <item>torch</item>
+        <item>perf</item>
+    </string-array>
+    <string-array name="charge_separation_entries">
+        <item>@string/charge_separation_off</item>
+        <item>@string/charge_separation_gaming</item>
+        <item>@string/charge_separation_always</item>
+    </string-array>
+    <string-array name="charge_separation_values" translatable="false">
+        <item>off</item>
+        <item>gaming</item>
+        <item>always</item>
+    </string-array>
+    <string-array name="perf_mode_entries">
+        <item>@string/perf_mode_balanced</item>
+        <item>@string/perf_mode_performance</item>
+        <item>@string/perf_mode_extreme</item>
+        <item>@string/perf_mode_ultra</item>
+    </string-array>
+    <string-array name="perf_mode_values" translatable="false">
+        <item>balanced</item>
+        <item>performance</item>
+        <item>extreme</item>
+        <item>ultra</item>
+    </string-array>
+</resources>

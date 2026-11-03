@@ -1,0 +1,40 @@
+# NX789J - under-display fingerprint (Goodix optical, ZTE ztecmdaidl HAL).
+#
+# The ZTE HAL is built on AOSP's fingerprint VIRTUAL-HAL template; its UDFPS
+# behaviour is switched by persist.vendor.fingerprint.virtual.* properties.
+# The actual finger/illumination handshake is ZTE-private and is driven by
+# NubiaUdfps (system_ext app, see NubiaUdfps/UdfpsController.java), which
+# replaces stock services.jar UdfpsDecoupleController + FingerprintSensorUi_ZTE.
+#
+#   type=udfps                    report UNDER_DISPLAY so Settings/SystemUI show
+#                                 the UDFPS enroll and lock screen UI
+#   sensor_location=x:y:r         this device's
+#                                 ro.vendor.feature.fingerprint_sensorui_position_*
+#   udfps.control_illumination=true  the HAL side owns illumination
+#   udfps.display_touch=true      halHandlesDisplayTouches=true: the framework
+#                                 does NOT forward onPointerDown. Finger down/up
+#                                 reach the HAL through zteCmd(10,x) from
+#                                 NubiaUdfps instead. With false (build 22),
+#                                 onPointerDown ran the HAL's virtual-engine
+#                                 path, which reports a fake ACQUIRED_GOOD after
+#                                 100 ms; SystemUI then removed its white circle
+#                                 ~35 ms before the Goodix capture, and every
+#                                 image came back unusable.
+#
+# persist.* props live in /data and every flash wipes it, so re-assert them each
+# boot at post-fs-data: before the HAL (late_start) and before system_server,
+# which reads halHandlesDisplayTouches once at boot.
+#
+# Calibration is not copied here: this unit's factory calibration is on the
+# persist partition, which is never wiped, and the HAL syncs it into the TEE.
+on post-fs-data
+    setprop persist.vendor.fingerprint.virtual.type udfps
+    setprop persist.vendor.fingerprint.virtual.sensor_location 608:2024:94
+    setprop persist.vendor.fingerprint.virtual.udfps.control_illumination true
+    setprop persist.vendor.fingerprint.virtual.udfps.display_touch true
+
+# Local HBM for the sensor area. Stock FingerprintSensorUi_ZTE (system uid)
+# writes 1/0 here; the node is created root:root 0664.
+on boot
+    chown system system /proc/driver/lcd_hbm
+    chmod 0664 /proc/driver/lcd_hbm

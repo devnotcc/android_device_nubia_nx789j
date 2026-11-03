@@ -1,0 +1,79 @@
+# NX789J - /vendor/etc/init/hw/init.qcom.rc
+#
+# WHY THIS FILE EXISTS
+#
+# AOSP init imports exactly one vendor hw script by name:
+#     system/core/rootdir/init.rc:
+#         import /vendor/etc/init/hw/init.${ro.hardware}.rc
+# On this device ro.hardware=qcom, so that resolves to this path. Everything
+# else under /vendor/etc/init/hw/ is reached only by being imported from here
+# (stock chains init.qcom.rc -> init.target.rc -> init.qti.kernel.rc and a
+# dozen others). Files directly in /vendor/etc/init/ are picked up by init's
+# directory scan and do NOT need an import - that is why init.nx789j.rc lives
+# there.
+#
+# This port shipped init.qti.kernel.rc but neither init.qcom.rc nor
+# init.target.rc, so init.qti.kernel.rc was simply never parsed. The cost of
+# that was not obvious, and it cost several builds to find:
+#
+#     init.qti.kernel.rc:
+#         on early-init
+#             exec_start gki.modprobe      # system_dlkm_modprobe.sh
+#             start vendor.modprobe        # vendor_modprobe.sh
+#
+# Those two are the ONLY things that load /vendor_dlkm/lib/modules - 281
+# modules, including qseecom_proxy.ko and smcinvoke_dlkm.ko. First-stage init
+# loads only the 107 modules listed in the vendor_boot ramdisk's modules.load;
+# the vendor_dlkm set is a second-stage job and nothing was doing it.
+#
+# The failure chain that produced, top to bottom, as seen in the rawdump:
+#
+#   no vendor_modprobe
+#     -> qseecom_proxy.ko never loads      -> no /dev/qseecom
+#     -> libqtikeymint.so cannot reach the TEE ("Could not open /dev/qseecom")
+#     -> android.hardware.security.keymint-service-qti stays alive but never
+#        calls AServiceManager_addService, so
+#        android.hardware.security.keymint.IKeyMintDevice/default is absent
+#     -> keystore2: "Failed (attempt 2 of 6) to get_interface
+#        android.hardware.security.keymint.IKeyMintDevice/default:
+#        NAME_NOT_FOUND", then SIGABRT
+#     -> keystore2 never registers android.security.maintenance, so vold's
+#        waitForService() blocks forever and /data never mounts
+#     -> servicemanager falls back to lazy-start and init answers
+#        "Could not find 'aidl/android.security.maintenance'" - keystore2.rc
+#        in AOSP 16 declares no "interface aidl" lines at all, so there is
+#        nothing for ctl.interface_start to start. That message is a red
+#        herring; the real fault is four steps upstream.
+#     -> keystore2.rc is "critical window=0", so once it has crashed enough
+#        times init reboots the device. That is the bootloop.
+#
+# Confirming symptom: the property vendor.all.modules.ready, which
+# vendor_modprobe.sh sets on success, was absent from the full getprop dump.
+#
+# Kept deliberately minimal. Stock's init.qcom.rc is ~1000 lines and starts
+# services for blobs this port does not ship; import only what is needed and
+# grow this file one entry at a time.
+#
+# Two services declared by init.qti.kernel.rc reference binaries that are not
+# in proprietary-files.txt yet: memory-post-boot
+# (/vendor/bin/init.kernel.post_boot-memory.sh) and vendor.msm_irqbalance
+# (/vendor/bin/msm_irqbalance). Neither is "critical", so init logs the failure
+# and carries on. Worth adding later for scheduler/IRQ tuning; neither blocks
+# boot.
+
+# BUILD 17: import stock init.target.rc (shipped verbatim), NOT init.qti.kernel.rc.
+# init.target.rc's first line is "import /vendor/etc/init/hw/init.qti.kernel.rc",
+# so importing both would register init.qti.kernel.rc's actions twice (two
+# gki.modprobe / vendor.modprobe runs at early-init). init.target.rc also brings
+# the two mount_all calls, /dev/block/bootdevice, and the core daemons that were
+# simply absent until now:
+#   vendor.pd_mapper   /vendor/bin/pd-mapper   - protection-domain mapper; the
+#                      ADSP/CDSP/modem publish their services through it (audio,
+#                      sensors, pmic_glink charger/USB-C). Service audit of the
+#                      stock dump found it defined ONLY in init.target.rc.
+#   vendor.per_mgr     /vendor/bin/pm-service  - peripheral manager (subsystem
+#                      power votes); per_proxy starts when it is running
+#   vendor.mdm_launcher
+# The hand-written copies of mount_all/bootdevice in init.nx789j.rc were removed
+# in the same change so they do not run twice.
+import /vendor/etc/init/hw/init.target.rc

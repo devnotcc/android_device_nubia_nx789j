@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<permissions>
+    <privapp-permissions package="vendor.qti.frameworks.utils">
+        <permission name="android.permission.INTERACT_ACROSS_USERS"/>
+        <permission name="android.permission.OBSERVE_GRANT_REVOKE_PERMISSIONS"/>
+        <permission name="android.permission.REAL_GET_TASKS"/>
+    </privapp-permissions>
+</permissions>

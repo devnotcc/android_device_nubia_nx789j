@@ -1,0 +1,578 @@
+diff --git a/core/java/com/zte/feature/Feature.java b/core/java/com/zte/feature/Feature.java
+new file mode 100755
+index 000000000..bfef75528
+--- /dev/null
++++ b/core/java/com/zte/feature/Feature.java
+@@ -0,0 +1,71 @@
++/*
++ * SPDX-FileCopyrightText: The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++package com.zte.feature;
++
++import android.os.SystemProperties;
++import android.text.TextUtils;
++
++import java.util.Locale;
++
++/**
++ * Minimal stand-in for the ZTE framework feature switch (com.zte.feature.Feature in the stock
++ * NX789J framework.jar). nubia apps such as the stock camera look it up by reflection, with keys
++ * that are the feature property names ("ro.vendor.feature.camera_under_screen_sensor") or short
++ * ZTE names ("ZTE_FEATURE_..."). Stock serves them from a cache filled by system_server; here they
++ * are read straight from the properties the stock vendor/odm images already set. Without the
++ * class every feature reads as off - for the camera that means, among others, no under-display
++ * camera mask.
++ *
++ * @hide
++ */
++public final class Feature {
++    private static final String PREFIX = "ro.vendor.feature.";
++
++    private Feature() {}
++
++    private static String lookup(String key) {
++        if (TextUtils.isEmpty(key)) return "";
++        String k = key.toLowerCase(Locale.ENGLISH);
++        String v = SystemProperties.get(k, "");
++        if (v.isEmpty() && !k.startsWith(PREFIX)) v = SystemProperties.get(PREFIX + k, "");
++        return v;
++    }
++
++    public static String get(String key) {
++        return lookup(key);
++    }
++
++    public static String get(String key, String def) {
++        String v = lookup(key);
++        return v.isEmpty() ? def : v;
++    }
++
++    public static boolean getBoolean(String key, boolean def) {
++        String v = lookup(key);
++        if (v.isEmpty()) return def;
++        if ("1".equals(v) || "true".equalsIgnoreCase(v) || "y".equalsIgnoreCase(v)
++                || "yes".equalsIgnoreCase(v) || "on".equalsIgnoreCase(v)) return true;
++        if ("0".equals(v) || "false".equalsIgnoreCase(v) || "n".equalsIgnoreCase(v)
++                || "no".equalsIgnoreCase(v) || "off".equalsIgnoreCase(v)) return false;
++        return def;
++    }
++
++    public static int getInt(String key, int def) {
++        try {
++            return Integer.decode(lookup(key));
++        } catch (NumberFormatException e) {
++            return def;
++        }
++    }
++
++    public static long getLong(String key, long def) {
++        try {
++            return Long.decode(lookup(key));
++        } catch (NumberFormatException e) {
++            return def;
++        }
++    }
++}
+diff --git a/media/java/android/media/audiofx/DtsAudio.java b/media/java/android/media/audiofx/DtsAudio.java
+new file mode 100755
+index 000000000..420704bf4
+--- /dev/null
++++ b/media/java/android/media/audiofx/DtsAudio.java
+@@ -0,0 +1,51 @@
++/*
++ * SPDX-FileCopyrightText: The LineageOS Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++package android.media.audiofx;
++
++import java.util.UUID;
++
++/**
++ * Thin AudioEffect wrapper used by the nubia/ZTE DTS:X Ultra app (com.dts.dtsxultra), which
++ * looks this class up by reflection. Same shape as the class in the stock NX789J framework:
++ * it only exposes the AudioEffect constructor and raw parameter calls.
++ *
++ * @hide
++ */
++public class DtsAudio extends AudioEffect {
++    private static final String TAG = DtsAudio.class.getSimpleName();
++
++    // The app asks for audio session -22, which only nubia's modified AudioFlinger accepts (its
++    // DTS hook runs in the mixer). AOSP AudioFlinger rejects it ("invalid sessionId"), so map it
++    // to the global output mix, where the vendor "DTS Audio" effect (libdtsaudioaidl) runs.
++    private static final int NUBIA_DTS_SESSION = -22;
++    private static final int OUTPUT_MIX_SESSION = 0;
++
++    public DtsAudio(UUID type, UUID uuid, int priority, int audioSession) {
++        super(type, uuid, priority,
++                audioSession == NUBIA_DTS_SESSION ? OUTPUT_MIX_SESSION
++                        : audioSession);
++    }
++
++    @Override
++    public int setEnabled(boolean enabled) {
++        return super.setEnabled(enabled);
++    }
++
++    @Override
++    public boolean getEnabled() {
++        return super.getEnabled();
++    }
++
++    @Override
++    public int setParameter(byte[] param, byte[] value) {
++        return super.setParameter(param, value);
++    }
++
++    @Override
++    public int getParameter(byte[] param, byte[] value) {
++        return super.getParameter(param, value);
++    }
++}
+diff --git a/packages/SystemUI/src/com/android/systemui/biometrics/domain/interactor/UdfpsOverlayInteractor.kt b/packages/SystemUI/src/com/android/systemui/biometrics/domain/interactor/UdfpsOverlayInteractor.kt
+index 13bc6b231..5ed51a368 100644
+--- a/packages/SystemUI/src/com/android/systemui/biometrics/domain/interactor/UdfpsOverlayInteractor.kt
++++ b/packages/SystemUI/src/com/android/systemui/biometrics/domain/interactor/UdfpsOverlayInteractor.kt
+@@ -17,6 +17,8 @@
+ package com.android.systemui.biometrics.domain.interactor
+ 
+ import android.content.Context
++import android.content.Intent
++import android.os.UserHandle
+ import android.hardware.fingerprint.FingerprintManager
+ import android.util.Log
+ import android.view.MotionEvent
+@@ -95,6 +97,28 @@ constructor(
+             Log.d(TAG, "setIgnoreDisplayTouches not set, UDFPS not supported")
+         }
+         _shouldHandleTouches.value = shouldHandle
++        notifyDeviceUdfps(shouldHandle)
++    }
++
++    /**
++     * nubia NX789J: the optical sensor's illumination and capture handshake are
++     * driven by the device's NubiaUdfps service, not by this overlay, so tell it
++     * whether the UDFPS affordance is live (lockscreen icon shown, not bouncer /
++     * shade / dialog; or an enroll / BiometricPrompt overlay). Receiver requires
++     * STATUS_BAR_SERVICE, so only SystemUI can send this.
++     */
++    private fun notifyDeviceUdfps(shouldHandle: Boolean) {
++        try {
++            context.sendBroadcastAsUser(
++                Intent("org.lineageos.nubia.udfps.HANDLE_TOUCHES")
++                    .setPackage("org.lineageos.nubia.udfps")
++                    .addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY)
++                    .putExtra("handle", shouldHandle),
++                UserHandle.SYSTEM,
++            )
++        } catch (e: RuntimeException) {
++            Log.w(TAG, "notifyDeviceUdfps failed", e)
++        }
+     }
+ 
+     private var _shouldHandleTouches = MutableStateFlow(true)
+diff --git a/packages/SystemUI/src/com/android/systemui/doze/DozeUi.java b/packages/SystemUI/src/com/android/systemui/doze/DozeUi.java
+index 91c6df3a1..1ee0c17d5 100644
+--- a/packages/SystemUI/src/com/android/systemui/doze/DozeUi.java
++++ b/packages/SystemUI/src/com/android/systemui/doze/DozeUi.java
+@@ -17,20 +17,27 @@
+ package com.android.systemui.doze;
+ 
+ import static com.android.systemui.doze.DozeMachine.State.DOZE;
++import static com.android.systemui.doze.DozeMachine.State.DOZE_AOD;
+ import static com.android.systemui.doze.DozeMachine.State.DOZE_AOD_PAUSED;
+ 
+ import android.app.AlarmManager;
++import android.content.BroadcastReceiver;
+ import android.content.Context;
++import android.content.Intent;
++import android.content.IntentFilter;
++import android.os.BatteryManager;
+ import android.os.Handler;
+ import android.os.SystemClock;
+ import android.text.format.Formatter;
+ import android.util.Log;
++import android.view.Display;
+ 
+ import androidx.annotation.AnyThread;
+ 
+ import com.android.systemui.dagger.qualifiers.Background;
+ import com.android.systemui.dagger.qualifiers.Main;
+ import com.android.systemui.doze.dagger.DozeScope;
++import com.android.systemui.doze.dagger.WrappedService;
+ import com.android.systemui.statusbar.phone.DozeParameters;
+ import com.android.systemui.util.AlarmTimeout;
+ import com.android.systemui.util.concurrency.DelayableExecutor;
+@@ -46,6 +53,9 @@ import javax.inject.Inject;
+ @DozeScope
+ public class DozeUi implements DozeMachine.Part {
+     private static final long TIME_TICK_DEADLINE_MILLIS = 90 * 1000; // 1.5min
++    // In STATE_DOZE_SUSPEND the compositor stops pushing frames, so the AOD clock would freeze.
++    // On each time tick the display goes to STATE_DOZE for this long to show the new frame.
++    private static final long SUSPEND_REFRESH_MILLIS = 700;
+     private final Context mContext;
+     private final DozeHost mHost;
+     private final Handler mHandler;
+@@ -56,6 +66,11 @@ public class DozeUi implements DozeMachine.Part {
+     private final DozeParameters mDozeParameters;
+     private final DozeLog mDozeLog;
+     private final DelayableExecutor mBgExecutor;
++    private final DozeMachine.Service mDozeService;
++    // Last battery level / plug state drawn on AOD; -1 = unknown.
++    private int mAodBatteryLevel = -1;
++    private int mAodPlugged = -1;
++    private boolean mBatteryReceiverRegistered;
+     private volatile long mLastTimeTickElapsed = 0;
+     // If time tick is scheduled and there's not a pending runnable to cancel:
+     private volatile boolean mTimeTickScheduled;
+@@ -75,7 +90,8 @@ public class DozeUi implements DozeMachine.Part {
+             @Background Handler bgHandler,
+             DozeParameters params,
+             @Background DelayableExecutor bgExecutor,
+-            DozeLog dozeLog) {
++            DozeLog dozeLog,
++            @WrappedService DozeMachine.Service dozeService) {
+         mContext = context;
+         mWakeLock = wakeLock;
+         mHost = host;
+@@ -85,6 +101,7 @@ public class DozeUi implements DozeMachine.Part {
+         mDozeParameters = params;
+         mTimeTicker = new AlarmTimeout(alarmManager, this::onTimeTick, "doze_time_tick", bgHandler);
+         mDozeLog = dozeLog;
++        mDozeService = dozeService;
+     }
+ 
+     @Override
+@@ -162,6 +179,7 @@ public class DozeUi implements DozeMachine.Part {
+                 unscheduleTimeTick();
+                 break;
+         }
++        setBatteryRefreshEnabled(newState == DOZE_AOD);
+         updateAnimateWakeup(newState);
+     }
+ 
+@@ -231,10 +249,64 @@ public class DozeUi implements DozeMachine.Part {
+     private void onTimeTick() {
+         verifyLastTimeTick();
+ 
+-        // Keep wakelock until a frame has been pushed.
+-        mHandler.post(mWakeLock.wrap(mHost::dozeTimeTick));
++        if (mDozeParameters.getDozeSuspendDisplayStateSupported()) {
++            refreshSuspendedFrame();
++        } else {
++            // Keep wakelock until a frame has been pushed.
++            mHandler.post(mWakeLock.wrap(mHost::dozeTimeTick));
++        }
+ 
+         mTimeTickScheduled = false;
+         scheduleTimeTick();
+     }
++    /**
++     * Push one new AOD frame while the display sits in STATE_DOZE_SUSPEND (which shows the
++     * last frame only): STATE_DOZE for SUSPEND_REFRESH_MILLIS, then back to suspend.
++     */
++    @AnyThread
++    private void refreshSuspendedFrame() {
++        mWakeLock.acquire("DozeUi.suspendRefresh");
++        mHandler.post(() -> {
++            final boolean suspended = mMachine != null && mMachine.getState() == DOZE_AOD;
++            if (suspended) mDozeService.setDozeScreenState(Display.STATE_DOZE);
++            mHost.dozeTimeTick();
++            mHandler.postDelayed(() -> {
++                if (suspended && mMachine.getState() == DOZE_AOD) {
++                    mDozeService.setDozeScreenState(Display.STATE_DOZE_SUSPEND);
++                }
++                mWakeLock.release("DozeUi.suspendRefresh");
++            }, suspended ? SUSPEND_REFRESH_MILLIS : 0);
++        });
++    }
++
++    // Battery percentage and charger state on AOD would otherwise only change on the minute
++    // tick. Redraw on level / plug changes only (BATTERY_CHANGED also fires for every
++    // voltage, current or temperature change, which would keep the display awake while
++    // charging).
++    private final BroadcastReceiver mBatteryReceiver = new BroadcastReceiver() {
++        @Override
++        public void onReceive(Context context, Intent intent) {
++            final int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
++            final int plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
++            final boolean changed = mAodBatteryLevel != -1
++                    && (level != mAodBatteryLevel || plugged != mAodPlugged);
++            mAodBatteryLevel = level;
++            mAodPlugged = plugged;
++            if (changed) refreshSuspendedFrame();
++        }
++    };
++
++    private void setBatteryRefreshEnabled(boolean enabled) {
++        if (!mDozeParameters.getDozeSuspendDisplayStateSupported()) return;
++        if (enabled == mBatteryReceiverRegistered) return;
++        mBatteryReceiverRegistered = enabled;
++        if (enabled) {
++            mAodBatteryLevel = -1;
++            mAodPlugged = -1;
++            mContext.registerReceiver(mBatteryReceiver,
++                    new IntentFilter(Intent.ACTION_BATTERY_CHANGED), null, mHandler);
++        } else {
++            mContext.unregisterReceiver(mBatteryReceiver);
++        }
++    }
+ }
+diff --git a/packages/SystemUI/src/com/android/systemui/nowplaying/NowPlayingView.kt b/packages/SystemUI/src/com/android/systemui/nowplaying/NowPlayingView.kt
+index a3047664d..c19edce49 100644
+--- a/packages/SystemUI/src/com/android/systemui/nowplaying/NowPlayingView.kt
++++ b/packages/SystemUI/src/com/android/systemui/nowplaying/NowPlayingView.kt
+@@ -420,7 +420,7 @@ class NowPlayingView(context: Context) : FrameLayout(context) {
+         if (trackTitle.isEmpty()) return
+ 
+         val centerX = width / 2f
+-        val yPosition = height * verticalPosition
++        val yPosition = clampedBaseline(height * verticalPosition)
+ 
+         if (cachedWidth != width) {
+             cachedWidth = width
+@@ -434,6 +434,17 @@ class NowPlayingView(context: Context) : FrameLayout(context) {
+         }
+     }
+ 
++    // Keep the whole block inside the view. At the default 98 % the artist line (and the
++    // title descenders) were drawn past the bottom edge, so on AOD the text was cut off.
++    private fun clampedBaseline(y: Float): Float {
++        val below = if (useCompactStyle || artistName.isEmpty())
++            trackPaint.textSize * 0.3f
++        else
++            trackPaint.textSize + titleArtistGap + artistPaint.textSize * 1.3f
++        val margin = 16f * resources.displayMetrics.density
++        return y.coerceAtMost(height - below - margin)
++    }
++
+     private fun drawCompactStyleWithMarquee(canvas: Canvas, centerX: Float, yPosition: Float, maxWidth: Float) {
+         val separator = if (artistName.isNotEmpty()) " ~ " else ""
+         val fullText = "$trackTitle$separator$artistName"
+diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/KeyguardIndicationController.java b/packages/SystemUI/src/com/android/systemui/statusbar/KeyguardIndicationController.java
+index ce8178920..167c37c36 100644
+--- a/packages/SystemUI/src/com/android/systemui/statusbar/KeyguardIndicationController.java
++++ b/packages/SystemUI/src/com/android/systemui/statusbar/KeyguardIndicationController.java
+@@ -250,6 +250,8 @@ public class KeyguardIndicationController {
+     private long mLastChargeTimeComputeMs;
+     private float mChargingCurrent;
+     private float mChargingVoltage;
++    // Charger input (VBUS) voltage, for display only; wattage keeps using the battery side.
++    private float mChargerInputVoltage;
+     private float mTemperature;
+     private Pair<String, BiometricSourceType> mBiometricErrorMessageToShowOnScreenOn;
+     private Set<Integer> mCoExFaceAcquisitionMsgIdsToShow;
+@@ -1495,9 +1497,13 @@ public class KeyguardIndicationController {
+                 chargingDetails.add(String.format(Locale.US, "%.1f",
+                         (mChargingWattage / (float) mCurrentDivider / 1000f)) + "W");
+             }
+-            if (mChargingVoltage > 0) {
++            // nx789j: show the charger input voltage (e.g. 18 V on PD/PPS) rather than the
++            // two-cell battery voltage (~8 V); fall back to the battery voltage if unknown.
++            final float shownVoltage = mChargerInputVoltage > 0
++                    ? mChargerInputVoltage : mChargingVoltage;
++            if (shownVoltage > 0) {
+                 chargingDetails.add(String.format(Locale.US, "%.1f",
+-                        (mChargingVoltage / 1000000f)) + "V");
++                        (shownVoltage / 1000000f)) + "V");
+             }
+             if (mTemperature > 0) {
+                 chargingDetails.add(String.format(Locale.US, "%.1f",
+@@ -1685,6 +1691,7 @@ public class KeyguardIndicationController {
+                     batteryIntent, status.maxChargingVoltage);
+             mChargingWattage = getRealtimeChargingWattage(
+                     mChargingCurrent, mChargingVoltage, status.maxChargingWattage);
++            mChargerInputVoltage = isChargingOrFull ? readChargerInputVoltage() : 0f;
+             mChargingSpeed = status.getChargingSpeed(mContext);
+             mChargingStatus = status.chargingStatus;
+             mBatteryLevel = status.level;
+@@ -1764,11 +1771,30 @@ public class KeyguardIndicationController {
+             }
+ 
+             final float voltageMicroVolts = voltageMilliVolts * 1000f;
+-            return voltageMicroVolts >= 3_000_000f && voltageMicroVolts <= 6_000_000f
++            // Up to 10 V: two-cell (2S) packs such as the RedMagic 10S Pro sit at 7-9 V. With a
++            // 6 V cap their voltage was rejected and the charger's max voltage used instead,
++            // which roughly doubled the shown wattage.
++            return voltageMicroVolts >= 3_000_000f && voltageMicroVolts <= 10_000_000f
+                     ? voltageMicroVolts
+                     : fallbackVoltageMicroVolts;
+         }
+ 
++        /** Charger input voltage in microvolts from the USB / wireless supply, 0 if unknown. */
++        private float readChargerInputVoltage() {
++            for (String supply : new String[] {"usb", "wireless"}) {
++                try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader(
++                        "/sys/class/power_supply/" + supply + "/voltage_now"))) {
++                    final String line = r.readLine();
++                    if (line == null) continue;
++                    final float uv = Float.parseFloat(line.trim());
++                    if (uv >= 3_000_000f && uv <= 30_000_000f) return uv;
++                } catch (java.io.IOException | NumberFormatException | SecurityException e) {
++                    // not present / not readable: try the next supply
++                }
++            }
++            return 0f;
++        }
++
+         private float getRealtimeChargingWattage(
+                 float chargingCurrentMicroAmps, float chargingVoltageMicroVolts,
+                 float fallbackWattageMicroWatts) {
+diff --git a/services/core/java/com/android/server/audio/AudioDeviceBroker.java b/services/core/java/com/android/server/audio/AudioDeviceBroker.java
+index 31c3187f0..abdc84b4e 100644
+--- a/services/core/java/com/android/server/audio/AudioDeviceBroker.java
++++ b/services/core/java/com/android/server/audio/AudioDeviceBroker.java
+@@ -1396,17 +1396,45 @@ public class AudioDeviceBroker {
+         if (AudioService.DEBUG_COMM_RTE) {
+             Log.v(TAG, "startBluetoothScoForClient, uid: " + attributionSource.getUid());
+         }
++        final AudioDeviceAttributes leDevice = getLeAudioDeviceInsteadOfSco();
++        if (leDevice != null) {
++            Log.i(TAG, "startBluetoothScoForClient: no HFP headset, using LE Audio for uid: "
++                    + attributionSource.getUid());
++            postSetCommunicationDeviceForClient(new CommunicationDeviceInfo(cb, attributionSource,
++                    leDevice, true, scoAudioMode, eventSource, isPrivileged));
++            postBroadcastScoConnectionState(AudioManager.SCO_AUDIO_STATE_CONNECTED);
++            return;
++        }
+         postSetCommunicationDeviceForClient(new CommunicationDeviceInfo(cb, attributionSource,
+                 new AudioDeviceAttributes(AudioSystem.DEVICE_OUT_BLUETOOTH_SCO, ""),
+                 true, scoAudioMode, eventSource, isPrivileged));
+     }
+ 
++    /**
++     * Headsets connected over LE Audio only (no HFP) cannot bring up SCO, so the legacy
++     * startBluetoothSco() used by many VoIP apps (WhatsApp) failed and the call stayed on the
++     * speaker. Return the LE Audio headset to use instead, or null when an HFP headset exists.
++     */
++    private @Nullable AudioDeviceAttributes getLeAudioDeviceInsteadOfSco() {
++        if (mDeviceInventory.getDeviceOfType(AudioSystem.DEVICE_OUT_BLUETOOTH_SCO) != null) {
++            return null;
++        }
++        return mDeviceInventory.getDeviceOfType(AudioSystem.DEVICE_OUT_BLE_HEADSET);
++    }
++
+     /*package*/ void stopBluetoothScoForClient(IBinder cb,
+             @NonNull AttributionSource attributionSource, boolean isPrivileged,
+             @NonNull String eventSource) {
+         if (AudioService.DEBUG_COMM_RTE) {
+             Log.v(TAG, "stopBluetoothScoForClient, uid: " + attributionSource.getUid());
+         }
++        final AudioDeviceAttributes leDevice = getLeAudioDeviceInsteadOfSco();
++        if (leDevice != null) {
++            postSetCommunicationDeviceForClient(new CommunicationDeviceInfo(cb, attributionSource,
++                    leDevice, false, BtHelper.SCO_MODE_UNDEFINED, eventSource, isPrivileged));
++            postBroadcastScoConnectionState(AudioManager.SCO_AUDIO_STATE_DISCONNECTED);
++            return;
++        }
+         postSetCommunicationDeviceForClient(new CommunicationDeviceInfo(
+                 cb, attributionSource, new AudioDeviceAttributes(
+                                               AudioSystem.DEVICE_OUT_BLUETOOTH_SCO, ""),
+diff --git a/services/core/java/com/android/server/input/InputManagerService.java b/services/core/java/com/android/server/input/InputManagerService.java
+index e51986881..d667ce73d 100644
+--- a/services/core/java/com/android/server/input/InputManagerService.java
++++ b/services/core/java/com/android/server/input/InputManagerService.java
+@@ -461,6 +461,14 @@ public class InputManagerService extends IInputManager.Stub
+     public static final int SW_CAMERA_LENS_COVER_BIT = 1 << SW_CAMERA_LENS_COVER;
+     public static final int SW_MUTE_DEVICE_BIT = 1 << SW_MUTE_DEVICE;
+ 
++    // nx789j: the RedMagic side slider (gpio-keys_nubia) reports itself as switch
++    // 0x0f (SW_PEN_INSERTED in the kernel headers). Nothing in AOSP consumes it, so
++    // forward it to the device parts app (NubiaParts), which owns the slider action.
++    private static final int SW_NUBIA_GAME_KEY_BIT = 1 << 0x0f;
++    private static final String NUBIA_PARTS_PACKAGE = "org.lineageos.nubia.parts";
++    private static final String ACTION_NUBIA_GAME_SWITCH =
++            "org.lineageos.nubia.parts.GAME_SWITCH";
++
+     // The following are layer numbers used for z-ordering the input overlay layers on the display.
+     // This is used for ordering layers inside {@code DisplayContent#getInputOverlayLayer()}.
+     //
+@@ -2601,6 +2609,17 @@ public class InputManagerService extends IInputManager.Stub
+             }
+         }
+ 
++        if ((switchMask & SW_NUBIA_GAME_KEY_BIT) != 0) {
++            final boolean on = (switchValues & SW_NUBIA_GAME_KEY_BIT) != 0;
++            mHandler.post(() -> mContext.sendBroadcastAsUser(
++                    new Intent(ACTION_NUBIA_GAME_SWITCH)
++                            .setPackage(NUBIA_PARTS_PACKAGE)
++                            .addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY
++                                    | Intent.FLAG_RECEIVER_FOREGROUND)
++                            .putExtra("on", on),
++                    UserHandle.SYSTEM));
++        }
++
+         if ((switchMask & SW_CAMERA_LENS_COVER_BIT) != 0) {
+             final boolean lensCovered = ((switchValues & SW_CAMERA_LENS_COVER_BIT) != 0);
+             mWindowManagerCallbacks.notifyCameraLensCoverSwitchChanged(whenNanos, lensCovered);
+diff --git a/services/core/java/com/android/server/pocket/PocketService.java b/services/core/java/com/android/server/pocket/PocketService.java
+index 5f1fd0756..baf7e276a 100644
+--- a/services/core/java/com/android/server/pocket/PocketService.java
++++ b/services/core/java/com/android/server/pocket/PocketService.java
+@@ -150,6 +150,11 @@ public class PocketService extends SystemService implements IBinder.DeathRecipie
+     private int mLightState = LIGHT_UNKNOWN;
+     private int mLastLightState = LIGHT_UNKNOWN;
+     private float mLightMaxRange;
++    // nx789j: light is sampled on demand (see sampleLight()), not streamed while the
++    // screen is off - a streaming ALS keeps the sensor DSP busy and on SM8750 the ADSP
++    // then aborts every suspend (smp2p-sleepstate), so the phone never sleeps.
++    private static final int LIGHT_SAMPLES_PER_CHECK = 2;
++    private int mLightSamples;
+     private boolean mLightRegistered;
+     private Sensor mLightSensor;
+ 
+@@ -515,7 +520,7 @@ public class PocketService extends SystemService implements IBinder.DeathRecipie
+         }
+         startListeningForVendorSensor();
+         startListeningForProximity();
+-        startListeningForLight();
++        // light: sampled when proximity turns positive (handleProximitySensorEvent)
+     }
+ 
+     private void unregisterSensorListeners() {
+@@ -622,6 +627,20 @@ public class PocketService extends SystemService implements IBinder.DeathRecipie
+         }
+     }
+ 
++    /** Take a fresh light reading (LIGHT_SAMPLES_PER_CHECK events), then pause the sensor. */
++    private void sampleLight() {
++        mLightSamples = 0;
++        startListeningForLight();
++    }
++
++    /** Unregister the light sensor but keep the last light state for isDeviceInPocket(). */
++    private void pauseLight() {
++        if (mLightRegistered) {
++            mSensorManager.unregisterListener(mLightListener);
++            mLightRegistered = false;
++        }
++    }
++
+     private void stopListeningForLight() {
+         if (DEBUG) {
+             Log.d(TAG, "stopListeningForLight()");
+@@ -815,6 +834,9 @@ public class PocketService extends SystemService implements IBinder.DeathRecipie
+                             + ", maxRange=" + mLightMaxRange + ", isPoor=" + isPoor);
+                 }
+                 mLightState = isPoor ? LIGHT_POCKET : LIGHT_AMBIENT;
++                if (++mLightSamples >= LIGHT_SAMPLES_PER_CHECK) {
++                    pauseLight();
++                }
+             }
+         } catch (NullPointerException e) {
+             Log.e(TAG, "Event: something went wrong, exception caught, e = " + e);
+@@ -853,6 +875,11 @@ public class PocketService extends SystemService implements IBinder.DeathRecipie
+                 }
+                 mProximityState = isPositive ? PROXIMITY_POSITIVE : PROXIMITY_NEGATIVE;
+             }
++            if (mProximityState == PROXIMITY_POSITIVE) {
++                sampleLight();
++            } else {
++                stopListeningForLight();
++            }
+         } catch (NullPointerException e) {
+             Log.e(TAG, "Event: something went wrong, exception caught, e = " + e);
+             mProximityState = PROXIMITY_UNKNOWN;

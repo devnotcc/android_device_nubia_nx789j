@@ -1,0 +1,28 @@
+//
+// SPDX-FileCopyrightText: The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+// QTI QESDK system service (vendor.qti.frameworks.utils) from the stock system_ext: serves
+// vendor.qti.qesdsys.IQesdSys/default. Without it the stock vendor qesdk-secmanager asks
+// servicemanager for that lazy service once a second, forever. SELinux (vendor_qesdk_app,
+// vendor_qesdk_service) comes from device/qcom/sepolicy; its seapp_contexts entry needs a
+// privileged app.
+
+android_app_import {
+    name: "FrameworksUtilsSysService",
+    apk: "proprietary/FrameworksUtilsSysService.apk",
+    certificate: "platform",
+    privileged: true,
+    system_ext_specific: true,
+    dex_preopt: {
+        enabled: false,
+    },
+    required: ["privapp-permissions-qesdk.xml"],
+}
+
+prebuilt_etc {
+    name: "privapp-permissions-qesdk.xml",
+    src: "privapp-permissions-qesdk.xml",
+    sub_dir: "permissions",
+    system_ext_specific: true,
+}

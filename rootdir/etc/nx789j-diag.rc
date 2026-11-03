@@ -1,0 +1,26 @@
+# NX789J system-boot diagnostics -> raw rawdump partition. REMOVE once it boots.
+#
+# Lives on /system_ext, not /vendor, since build 17: the port is being tested
+# both with a vendor image built from extracted blobs AND with the untouched
+# stock vendor partition (the approach the RedMagic 11 Pro / NX809J LineageOS
+# port boots with). Anything on /vendor disappears in the stock-vendor pairing,
+# and this is the only window into a boot with no adb and no working pstore.
+#
+# The interpreter stays /vendor/bin/sh: its file label is what puts the service
+# in vendor_qti_init_shell (seen in every dump so far), and that label is the
+# same on both vendor images. The script itself is only read by sh.
+#
+# The system bootloops and there is no adb, so this is the only way to see why.
+# Trigger as early as possible; the service is oneshot, first trigger wins.
+service nxdiagsys /vendor/bin/sh /system_ext/bin/nx789j-diag-system.sh
+    disabled
+    oneshot
+
+on early-init
+    start nxdiagsys
+
+on init
+    start nxdiagsys
+
+on post-fs
+    start nxdiagsys

@@ -1,0 +1,6 @@
+# Stock system/build.prop:199. QTI vendor HALs call isRunningWithVendorEnhancedFramework()
+# (libqti_vndfwk_detect), which reads this. Without it the camera HAL builds its cameras from
+# pakala_gsi.xml (one rear + one front sensor only) instead of pakala_mcx_aston.xml: no
+# ultrawide/macro, no logical 0.67x-10x SAT camera, and the stock camera's 0.6x stays on the
+# main sensor. Label: vendor_exported_system_prop (device/qcom/sepolicy).
+ro.vendor.qti.va_aosp.support=1

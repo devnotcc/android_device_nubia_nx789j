@@ -1,0 +1,13 @@
+diff --git a/common/private/adbd.te b/common/private/adbd.te
+index e5ef587..9dcdad7 100644
+--- a/common/private/adbd.te
++++ b/common/private/adbd.te
+@@ -1,2 +1,6 @@
+-allow adbd adbroot:binder call;
+-allow adbd adbroot_service:service_manager find;
++# nx789j: adb_root is only installed on non-user builds (vendor/lineage/config/common.mk),
++# keep the edge out of user policy (root detectors probe adbd -> adbroot binder call).
++userdebug_or_eng(`
++  allow adbd adbroot:binder call;
++  allow adbd adbroot_service:service_manager find;
++')

@@ -1,0 +1,120 @@
+# NX789J - the parts of stock's vendor init that this port needs but does not
+# ship.
+#
+# Stock's /vendor/etc/init/hw/ files are reached through init.qcom.rc, which AOSP
+# imports as init.${ro.hardware}.rc. This port ships its OWN minimal init.qcom.rc
+# (rootdir/etc/init.qcom.rc), which imports stock's init.qti.kernel.rc and - since
+# build 17 - stock's init.target.rc verbatim. Files directly in /vendor/etc/init/
+# are parsed automatically, which is why this one lives there.
+#
+# DO NOT re-add here what stock init.target.rc now provides, or it runs twice:
+#   on init    wait + symlink /dev/block/bootdevice
+#   on fs      mount_all /vendor/etc/fstab.qcom --early, persist chown/chmod
+#   on late-fs mount_all /vendor/etc/fstab.qcom --late
+#   services   vendor.pd_mapper, vendor.per_mgr, vendor.per_proxy, vendor.mdm_launcher
+# Builds 8-16 carried hand-written copies of the mount_all lines and the symlink;
+# they were removed when init.target.rc was shipped. The notes on WHY those were
+# needed are kept below, beside the one thing still done here (the mkdirs).
+
+# USB gadget (booted system).
+#
+# AOSP's init.usb.configfs.rc only CONFIGURES a gadget - it writes functions and
+# UDC and assumes /config/usb_gadget/g1 with its strings and configs/b.1 already
+# exist. Nothing in AOSP creates them; on a QTI device that is stock's
+# vendor/etc/init/hw/init.qcom.usb.rc, which this port does not ship. So without
+# this block sys.usb.configfs stays 0 (init.usb.rc's "on init" default) and USB
+# falls back to the legacy /sys/class/android_usb path, which does not exist on
+# this SoC - no adb, no MTP, no enumeration at all.
+#
+# Modelled on stock's init.qcom.usb.rc, with two deliberate differences:
+#   - stock runs "exec u:r:vendor_qti_init_shell:s0 -- /vendor/bin/init.qcom.usb.sh"
+#     to derive vendor.usb.controller. That seclabel does not exist in this
+#     port's (empty) vendor sepolicy, so the exec would fail. The bootloader
+#     already gives us the same value as ro.boot.usbcontroller
+#     (=a600000.dwc3, confirmed in the recovery log), so use it directly.
+#   - only ffs.adb is set up. MTP/PTP/RNDIS/mass_storage come later.
+#
+# configfs itself is mounted by AOSP's init.rc, so it is not mounted again here.
+on post-fs-data
+    mkdir /dev/usb-ffs 0775 shell system
+    mkdir /dev/usb-ffs/adb 0770 shell system
+    mount functionfs adb /dev/usb-ffs/adb uid=2000,gid=1000,rmode=0770,fmode=0660
+
+on boot
+    mkdir /config/usb_gadget/g1 0770 shell shell
+    mkdir /config/usb_gadget/g1/strings/0x409 0770
+    write /config/usb_gadget/g1/bcdUSB 0x0200
+    write /config/usb_gadget/g1/strings/0x409/serialnumber ${ro.serialno}
+    write /config/usb_gadget/g1/strings/0x409/manufacturer ${ro.product.manufacturer}
+    write /config/usb_gadget/g1/strings/0x409/product ${vendor.usb.product_string}
+    mkdir /config/usb_gadget/g1/functions/ffs.adb 0770 system usb
+    mkdir /config/usb_gadget/g1/configs/b.1 0770
+    mkdir /config/usb_gadget/g1/configs/b.1/strings/0x409 0770
+    write /config/usb_gadget/g1/configs/b.1/MaxPower 900
+    setprop sys.usb.controller ${ro.boot.usbcontroller}
+    setprop sys.usb.configfs 1
+
+# (System-boot diagnostics moved to /system_ext/etc/init/nx789j-diag.rc in build 17
+# so they survive pairing this system with a STOCK vendor image.)
+
+# Mount the vendor fstab. THIS IS WHAT BLOCKED BOOT AFTER THE init_boot FIX.
+#
+# fstab.qcom has three classes of entry:
+#   first_stage_mount  - system/vendor/product/odm/*_dlkm/metadata, done by
+#                        first-stage init before this file is even parsed
+#   latemount          - /data only, done by "on late-fs: mount_all --late" below
+#   neither            - /vendor/firmware_mnt, /vendor/dsp, /vendor/bt_firmware,
+#                        /mnt/vendor/persist, /mnt/vendor/qmcs, /mnt/vendor/spunvm
+#
+# That third group is mounted by an explicit mount_all, which stock does in
+#   vendor/etc/init/hw/init.target.rc:  on fs -> mount_all /vendor/etc/fstab.qcom --early
+# and this port ships neither init.target.rc nor the init.qcom.rc that imports it.
+# So nothing ever mounted them, and /vendor/firmware_mnt in particular holds the
+# trustlet images qseecomd loads. Observed chain, from the build-8 dump:
+#   no /vendor/firmware_mnt
+#     -> vendor.qseecomd exits 255
+#       -> KeyMint HAL has no TEE
+#         -> keystore2 never registers android.security.maintenance
+#           -> vold blocks on it forever (one retry per second, from t=1.17s)
+#             -> /data never mounts
+#               -> no zygote, no surfaceflinger, OEM splash stays up
+#
+# --early matches stock: mount everything EXCEPT the latemount entries; /data is
+# the --late mount. Both mount_all calls now come from stock init.target.rc.
+#
+# The mount points for the "--early" group. Done in on init rather than on fs:
+# stock init.target.rc is reached through an import from init.rc, so its "on fs"
+# mount_all is registered - and therefore runs - BEFORE any "on fs" in this file.
+# /mnt itself exists by on init (first-stage tmpfs).
+on init
+    mkdir /mnt/vendor 0755 root root
+    mkdir /mnt/vendor/persist 0771 root system
+    mkdir /mnt/vendor/qmcs 0771 root system
+    mkdir /mnt/vendor/spunvm 0771 root system
+
+# Mount /data. THIS IS WHAT REBOOTED THE DEVICE 5 SECONDS IN ON BUILD 13.
+#
+# An earlier version of the comment above claimed AOSP does this itself in
+# on late-fs. It does not - system/core/rootdir/init.rc only triggers late-fs
+# and then post-fs-data ("Now we can mount /data..."); the actual mount_all
+# --late is the DEVICE's job. Stock does it in
+#   vendor/etc/init/hw/init.target.rc:93   on late-fs -> mount_all ... --late
+# which this port does not ship. So /data was never mounted by anything.
+#
+# Earlier builds never noticed, because they died before post-fs-data: KeyMint
+# was missing, so vold blocked forever on keystore2. Once the TEE chain came up
+# (build 13: QSEECOM DAEMON RUNNING, IKeyMintDevice registered, keystore2
+# "Successfully registered Keystore 2.0 service"), init sailed through late-fs
+# into post-fs-data with /data still unmounted and ran
+#   exec - system system -- /system/bin/vdc keymaster earlyBootEnded
+# keystore2 then opened its database:
+#   E keystore2: open(/data/misc/keystore/persistent.sqlite) ... unable to open
+#   E keystore2: panicked at globals.rs:187:14: Failed to open database
+# keystore2.rc is "critical window=0", so repeated crashes rebooted the device
+# within seconds - the 3-5 s splash-then-reboot.
+#
+# Ordering: init.rc is parsed first, so its own on late-fs actions (including
+# class_start early_hal, which brings up KeyMint) run before this one - the
+# same order as stock. fstab's userdata entry needs KeyMint for
+# metadata_encryption and is "formattable", so a zeroed userdata is formatted.
+# (the "on late-fs: mount_all --late" that lived here is now stock init.target.rc:93)

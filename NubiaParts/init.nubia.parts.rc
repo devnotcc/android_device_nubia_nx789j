@@ -1,0 +1,138 @@
+# NubiaParts performance modes.
+#
+# The vendor thermal daemon (thermal-engine-v2) only reads
+# /vendor/etc/thermal-engine.conf; ZTE's mode properties (vendor.thermal.mode_type,
+# persist.vendor.tskin, debug.oem.thermctl) do not change its rules on this device.
+# So a mode is selected by bind-mounting a profile over that file and restarting
+# the daemon. NubiaParts sets sys.nubia.thermal_profile after boot; with the
+# property unset (every boot starts that way) the stock file is in effect.
+#
+# The daemon is a vendor domain and may not read files on system_ext, so the
+# profiles are copied to /data/vendor/nubia_thermal at every boot and mounted
+# from there (see sepolicy/private/nx789j_parts.te).
+
+on post-fs-data
+    mkdir /data/vendor/nubia_thermal 0755 root root
+    copy /system_ext/etc/nubia/thermal-engine-performance.conf /data/vendor/nubia_thermal/thermal-engine-performance.conf
+    copy /system_ext/etc/nubia/thermal-engine-extreme.conf /data/vendor/nubia_thermal/thermal-engine-extreme.conf
+    copy /system_ext/etc/nubia/thermal-engine-ultra.conf /data/vendor/nubia_thermal/thermal-engine-ultra.conf
+    chmod 0644 /data/vendor/nubia_thermal/thermal-engine-performance.conf
+    chmod 0644 /data/vendor/nubia_thermal/thermal-engine-extreme.conf
+    chmod 0644 /data/vendor/nubia_thermal/thermal-engine-ultra.conf
+    restorecon_recursive /data/vendor/nubia_thermal
+
+on property:sys.nubia.thermal_profile=balanced
+    umount /vendor/etc/thermal-engine.conf
+    restart thermal-engine
+
+on property:sys.nubia.thermal_profile=performance
+    umount /vendor/etc/thermal-engine.conf
+    mount none /data/vendor/nubia_thermal/thermal-engine-performance.conf /vendor/etc/thermal-engine.conf bind
+    restart thermal-engine
+
+on property:sys.nubia.thermal_profile=extreme
+    umount /vendor/etc/thermal-engine.conf
+    mount none /data/vendor/nubia_thermal/thermal-engine-extreme.conf /vendor/etc/thermal-engine.conf bind
+    restart thermal-engine
+
+on property:sys.nubia.thermal_profile=ultra
+    umount /vendor/etc/thermal-engine.conf
+    mount none /data/vendor/nubia_thermal/thermal-engine-ultra.conf /vendor/etc/thermal-engine.conf bind
+    restart thermal-engine
+
+# Scheduler / GPU / memory-bus tuning that goes with each mode. NubiaParts sets
+# sys.nubia.perf_tuning to the active mode while the screen is on and back to
+# "balanced" when it turns off, so a raised mode never keeps the clocks up in
+# standby. "balanced" writes the stock values (as left by the vendor post-boot
+# scripts); "ultra" pins CPU, GPU and bus at their maximum. Thermal throttling
+# still wins: it lowers the frequency ceilings, and a floor is clamped to them.
+# GPU levels: 0 = 1200 MHz, 9 = 525 MHz, 11 = 389 MHz, 14 = 160 MHz.
+
+on property:sys.nubia.perf_tuning=balanced
+    write /sys/devices/system/cpu/cpufreq/policy0/scaling_min_freq 384000
+    write /sys/devices/system/cpu/cpufreq/policy6/scaling_min_freq 1017600
+    write /sys/devices/system/cpu/cpufreq/policy0/walt/hispeed_freq 1344000
+    write /sys/devices/system/cpu/cpufreq/policy6/walt/hispeed_freq 2380800
+    write /sys/devices/system/cpu/cpufreq/policy0/walt/hispeed_load 90
+    write /sys/devices/system/cpu/cpufreq/policy6/walt/hispeed_load 90
+    # downmigrate must stay below upmigrate through the change, whichever way it goes
+    write /proc/sys/walt/sched_downmigrate 65
+    write /proc/sys/walt/sched_upmigrate 95
+    write /proc/sys/walt/sched_downmigrate 85
+    write /proc/sys/walt/input_boost/input_boost_freq "864000 0 0 0 0 0 0 0"
+    write /proc/sys/walt/input_boost/input_boost_ms 100
+    write /sys/devices/system/cpu/cpu0/core_ctl/min_cpus 4
+    write /sys/devices/system/cpu/cpu6/core_ctl/min_cpus 0
+    write /sys/class/kgsl/kgsl-3d0/min_pwrlevel 14
+    write /sys/class/kgsl/kgsl-3d0/idle_timer 80
+    write /sys/devices/system/cpu/bus_dcvs/DDR/boost_freq 547000
+    write /sys/devices/system/cpu/bus_dcvs/LLCC/boost_freq 350000
+
+on property:sys.nubia.perf_tuning=performance
+    write /sys/devices/system/cpu/cpufreq/policy0/scaling_min_freq 960000
+    write /sys/devices/system/cpu/cpufreq/policy6/scaling_min_freq 1401600
+    write /sys/devices/system/cpu/cpufreq/policy0/walt/hispeed_freq 1785600
+    write /sys/devices/system/cpu/cpufreq/policy6/walt/hispeed_freq 2841600
+    write /sys/devices/system/cpu/cpufreq/policy0/walt/hispeed_load 80
+    write /sys/devices/system/cpu/cpufreq/policy6/walt/hispeed_load 80
+    # downmigrate must stay below upmigrate through the change, whichever way it goes
+    write /proc/sys/walt/sched_downmigrate 65
+    write /proc/sys/walt/sched_upmigrate 85
+    write /proc/sys/walt/sched_downmigrate 75
+    write /proc/sys/walt/input_boost/input_boost_freq "1363200 0 0 0 0 0 1689600 0"
+    write /proc/sys/walt/input_boost/input_boost_ms 120
+    write /sys/devices/system/cpu/cpu0/core_ctl/min_cpus 4
+    write /sys/devices/system/cpu/cpu6/core_ctl/min_cpus 2
+    write /sys/class/kgsl/kgsl-3d0/min_pwrlevel 11
+    write /sys/class/kgsl/kgsl-3d0/idle_timer 80
+    write /sys/devices/system/cpu/bus_dcvs/DDR/boost_freq 1353000
+    write /sys/devices/system/cpu/bus_dcvs/LLCC/boost_freq 533000
+
+on property:sys.nubia.perf_tuning=extreme
+    write /sys/devices/system/cpu/cpufreq/policy0/scaling_min_freq 1555200
+    write /sys/devices/system/cpu/cpufreq/policy6/scaling_min_freq 2246400
+    write /sys/devices/system/cpu/cpufreq/policy0/walt/hispeed_freq 2400000
+    write /sys/devices/system/cpu/cpufreq/policy6/walt/hispeed_freq 3513600
+    write /sys/devices/system/cpu/cpufreq/policy0/walt/hispeed_load 70
+    write /sys/devices/system/cpu/cpufreq/policy6/walt/hispeed_load 70
+    # downmigrate must stay below upmigrate through the change, whichever way it goes
+    write /proc/sys/walt/sched_downmigrate 65
+    write /proc/sys/walt/sched_upmigrate 75
+    write /proc/sys/walt/sched_downmigrate 65
+    write /proc/sys/walt/input_boost/input_boost_freq "1996800 0 0 0 0 0 2649600 0"
+    write /proc/sys/walt/input_boost/input_boost_ms 200
+    write /sys/devices/system/cpu/cpu0/core_ctl/min_cpus 4
+    write /sys/devices/system/cpu/cpu6/core_ctl/min_cpus 2
+    write /sys/class/kgsl/kgsl-3d0/min_pwrlevel 9
+    write /sys/class/kgsl/kgsl-3d0/idle_timer 200
+    write /sys/devices/system/cpu/bus_dcvs/DDR/boost_freq 2092000
+    write /sys/devices/system/cpu/bus_dcvs/LLCC/boost_freq 806000
+
+on property:sys.nubia.perf_tuning=ultra
+    write /sys/devices/system/cpu/cpufreq/policy0/scaling_min_freq 3532800
+    write /sys/devices/system/cpu/cpufreq/policy6/scaling_min_freq 4473600
+    write /sys/devices/system/cpu/cpufreq/policy0/walt/hispeed_freq 2400000
+    write /sys/devices/system/cpu/cpufreq/policy6/walt/hispeed_freq 3513600
+    write /sys/devices/system/cpu/cpufreq/policy0/walt/hispeed_load 70
+    write /sys/devices/system/cpu/cpufreq/policy6/walt/hispeed_load 70
+    # downmigrate must stay below upmigrate through the change, whichever way it goes
+    write /proc/sys/walt/sched_downmigrate 65
+    write /proc/sys/walt/sched_upmigrate 75
+    write /proc/sys/walt/sched_downmigrate 65
+    write /proc/sys/walt/input_boost/input_boost_freq "1996800 0 0 0 0 0 2649600 0"
+    write /proc/sys/walt/input_boost/input_boost_ms 200
+    write /sys/devices/system/cpu/cpu0/core_ctl/min_cpus 6
+    write /sys/devices/system/cpu/cpu6/core_ctl/min_cpus 2
+    write /sys/class/kgsl/kgsl-3d0/min_pwrlevel 0
+    write /sys/class/kgsl/kgsl-3d0/idle_timer 200
+    write /sys/devices/system/cpu/bus_dcvs/DDR/boost_freq 4761000
+    write /sys/devices/system/cpu/bus_dcvs/LLCC/boost_freq 1211000
+
+# Charge separation ("bypass charging"): with battery charging disabled the phone
+# runs from the charger and the battery sits idle. Same node and values as stock
+# ZteBatteryService (charge_separation_switch). The driver default after boot is 1.
+on property:sys.nubia.charge_separation=1
+    write /sys/class/qcom-battery/battery_charging_enabled 0
+
+on property:sys.nubia.charge_separation=0
+    write /sys/class/qcom-battery/battery_charging_enabled 1

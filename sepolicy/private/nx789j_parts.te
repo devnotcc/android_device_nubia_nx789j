@@ -1,0 +1,40 @@
+# NubiaParts (system uid, system_app): RedMagic cooling fan + side slider.
+#
+# The stock vendor policy leaves both nodes with the generic sysfs label. Give
+# them their own types here (genfs_contexts) so only these files are opened up
+# to system_app instead of all of sysfs.
+type sysfs_nubia_fan, fs_type, sysfs_type;
+type sysfs_nubia_gamekey, fs_type, sysfs_type;
+
+# /sys/kernel/fan/{fan_enable,fan_speed_level,fan_speed_count}
+allow system_app sysfs_nubia_fan:dir search;
+allow system_app sysfs_nubia_fan:file rw_file_perms;
+
+# /sys/devices/platform/soc/soc:gpio_keys_nubia/GamekeyStatus (slider position)
+allow system_app sysfs_nubia_gamekey:file r_file_perms;
+
+# Performance modes: init bind-mounts a thermal profile from
+# /system_ext/etc/nubia over /vendor/etc/thermal-engine.conf
+# (init.nubia.parts.rc); the daemon then reads the profile through that path.
+allow init vendor_configs_file:file mounton;
+
+# The profiles ship in /system_ext/etc/nubia, but vendor domains may not read
+# system_file_type (treble neverallow in domain.te; verified on the device too: the
+# daemon gets avc denied read and then runs with no skin rules at all), and files
+# on system_ext must carry such a type. So init copies them to
+# /data/vendor/nubia_thermal at every boot under this data type, which non-core
+# domains may read, and mounts them from there. The thermal daemon's own domain
+# cannot be named from system_ext policy, hence the attribute.
+type nubia_thermal_conf_file, file_type, data_file_type;
+allow init nubia_thermal_conf_file:dir create_dir_perms;
+allow init nubia_thermal_conf_file:file create_file_perms;
+# configstore HALs may not touch any data file (platform neverallow).
+allow { domain -appdomain -coredomain -hal_configstore_server } nubia_thermal_conf_file:file r_file_perms;
+
+# Mode tuning (sys.nubia.perf_tuning triggers in init.nubia.parts.rc): cpufreq and
+# core_ctl nodes, /proc/sys/walt (generic proc label on this vendor), and the kgsl
+# nodes, whose vendor type cannot be named from system_ext policy.
+allow init sysfs_devices_system_cpu:file w_file_perms;
+allow init proc:file w_file_perms;
+# init may not write unlabelled sysfs, nor the coresight nodes (platform neverallows).
+allow init { sysfs_type -sysfs -sysfs_devices_cs_etm }:file w_file_perms;

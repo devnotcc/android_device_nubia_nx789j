@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DTS sound reaches android.media.audiofx.DtsAudio (@hide) by reflection. -->
+<config>
+    <hidden-api-whitelisted-app package="com.dts.dtsxultra" />
+</config>

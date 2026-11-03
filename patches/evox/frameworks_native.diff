@@ -1,0 +1,112 @@
+diff --git a/services/surfaceflinger/SurfaceFlinger.cpp b/services/surfaceflinger/SurfaceFlinger.cpp
+index 502355f..a96d82a 100644
+--- a/services/surfaceflinger/SurfaceFlinger.cpp
++++ b/services/surfaceflinger/SurfaceFlinger.cpp
+@@ -104,6 +104,9 @@
+ #include <ui/OutputType.h>
+ #include <ui/PixelFormat.h>
+ #include <ui/StaticDisplayInfo.h>
++#include <fcntl.h>
++#include <thread>
++#include <atomic>
+ #include <unistd.h>
+ #include <utils/StopWatch.h>
+ #include <utils/String16.h>
+@@ -3131,6 +3134,80 @@ std::future<void> SurfaceFlinger::offloadGpuCompositedDisplays(
+     return offloadedCompositionFuture;
+ }
+ 
++// Frame-synchronised global HBM for optical under-display fingerprint sensors whose
++// panel can only boost the WHOLE screen (e.g. nubia NX789J, /proc/driver/lcd_hbm).
++// A device UDFPS app shows a full-screen dimming mask window and a sensor circle
++// window; stock ZTE SurfaceFlinger special-cases the equivalent layers. Doing the
++// HBM switch here, around the present of the frame that shows/hides the circle,
++// keeps the brightness jump hidden behind the mask - an app cannot time it.
++// Enabled only when ro.surface_flinger.udfps_hbm_node names the HBM control node.
++static int udfpsHbmWanted(const std::vector<std::pair<Layer*, LayerFE*>>& layers) {
++    static const std::string node =
++            base::GetProperty("ro.surface_flinger.udfps_hbm_node", "");
++    if (node.empty()) return -1;
++    bool circle = false;
++    bool mask = false;
++    for (const auto& [layer, layerFE] : layers) {
++        const auto* snapshot = layerFE->mSnapshot.get();
++        if (snapshot == nullptr || !snapshot->isVisible) continue;
++        if (snapshot->name.find("NubiaUdfpsCircle") != std::string::npos) {
++            circle = circle || snapshot->alpha > 0.5f;
++        } else if (snapshot->name.find("NubiaUdfpsMask") != std::string::npos) {
++            mask = mask || snapshot->alpha > 0.0f;
++        }
++    }
++    return (circle && mask) ? 1 : 0;
++}
++
++static void applyUdfpsHbm(int wanted, sp<Fence> presentFence) {
++    static int requested = 0;
++    if (wanted < 0 || wanted == requested) return;
++    requested = wanted;
++    static std::atomic<uint64_t> sequence{0};
++    const uint64_t mySequence = ++sequence;
++    // present() only hands the frame to HWC; a command-mode panel scans it out at
++    // its next refresh, while the HBM command takes effect at once. Wait for the
++    // frame's present fence so HBM follows the mask on screen, not ahead of it.
++    std::thread([wanted, presentFence = std::move(presentFence), mySequence]() {
++        // Tunables, separately for switching on and off:
++        //   debug.sf.udfps_hbm_{on,off}_fence    1 = wait for the present fence first
++        //   debug.sf.udfps_hbm_{on,off}_delay_ms extra delay after that
++        // Waiting for the fence on "on" can leave the mask up a moment before HBM
++        // lands (a dim frame); not waiting can let HBM land first (a bright frame).
++        const std::string dir = wanted ? "on" : "off";
++        const bool useFence =
++                base::GetBoolProperty("debug.sf.udfps_hbm_" + dir + "_fence", wanted != 0);
++        if (useFence && presentFence != nullptr && presentFence->isValid()) {
++            presentFence->wait(100);
++        }
++        const int delayMs = base::GetIntProperty("debug.sf.udfps_hbm_" + dir + "_delay_ms",
++                                                 base::GetIntProperty("debug.sf.udfps_hbm_delay_ms",
++                                                                      0));
++        if (delayMs > 0) usleep(delayMs * 1000);
++
++        static std::mutex lock;
++        static uint64_t applied = 0;
++        std::lock_guard<std::mutex> guard(lock);
++        if (mySequence < applied) return;
++        applied = mySequence;
++
++        static const std::string node =
++                base::GetProperty("ro.surface_flinger.udfps_hbm_node", "");
++        int fd = open(node.c_str(), O_WRONLY | O_CLOEXEC);
++        if (fd < 0) {
++            ALOGE("UDFPS HBM: open %s failed: %s", node.c_str(), strerror(errno));
++            return;
++        }
++        const char value = wanted ? '1' : '0';
++        if (write(fd, &value, 1) != 1) {
++            ALOGE("UDFPS HBM: write %c failed: %s", value, strerror(errno));
++        } else {
++            ALOGD("UDFPS HBM %c", value);
++        }
++        close(fd);
++    }).detach();
++}
++
+ CompositeResultsPerDisplay SurfaceFlinger::composite(
+         PhysicalDisplayId pacesetterId, const scheduler::FrameTargeters& frameTargeters) {
+     SFTRACE_ASYNC_FOR_TRACK_BEGIN(WorkloadTracer::TRACK_NAME, "Composition",
+@@ -3191,6 +3268,7 @@ CompositeResultsPerDisplay SurfaceFlinger::composite(
+     const auto layers = addLayerSnapshotsToCompositionArgs(mainThreadRefreshArgs, kCursorOnly);
+ 
+     prepareLayersForComposition(mainThreadRefreshArgs, kCursorOnly, layers);
++    const int udfpsHbm = udfpsHbmWanted(layers);
+ 
+     for (auto& [layer, layerFE] : layers) {
+         validateForReadback(layerFE);
+@@ -3247,6 +3325,8 @@ CompositeResultsPerDisplay SurfaceFlinger::composite(
+     }
+ 
+     mCompositionEngine->present(mainThreadRefreshArgs);
++    // After present, gated on this frame's present fence (see applyUdfpsHbm).
++    applyUdfpsHbm(udfpsHbm, getHwComposer().getPresentFence(pacesetterId));
+ 
+     finalizeReadback(mainThreadRefreshArgs.outputs);
+ 

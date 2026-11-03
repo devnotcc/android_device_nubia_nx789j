@@ -1,0 +1,28 @@
+//
+// SPDX-FileCopyrightText: The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+// nubia "DTS sound" (com.dts.dtsxultra) from the stock system/app (DtsUltraMagic_MFV).
+// It attaches the vendor "dtsaudio" effect (libdtsaudioaidl.so, presets in /vendor/etc/dts)
+// that stock uses on the speaker; without it no effect runs and the speakers sound quieter
+// and thinner than on stock. It reflects into android.media.audiofx.DtsAudio, which our
+// frameworks/base carries (patches/evox/frameworks_base_dtsaudio.diff). The vendor RROs
+// com.dts.dtsxultraoverLayZTE* already target this package.
+
+android_app_import {
+    name: "DtsUltraMagic",
+    apk: "proprietary/DtsUltraMagic.apk",
+    certificate: "platform",
+    system_ext_specific: true,
+    dex_preopt: {
+        enabled: false,
+    },
+    required: ["dts-hiddenapi-allowlist.xml"],
+}
+
+prebuilt_etc {
+    name: "dts-hiddenapi-allowlist.xml",
+    src: "dts-hiddenapi-allowlist.xml",
+    sub_dir: "sysconfig",
+    system_ext_specific: true,
+}

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     SPDX-FileCopyrightText: The LineageOS Project
+     SPDX-License-Identifier: Apache-2.0
+-->
+<!-- Runs as system, like stock FingerprintSensorUi_ZTE plus the ZTE hooks in
+     services.jar, so it can write /proc/driver/lcd_hbm, add a system overlay
+     window and talk to the fingerprint HAL. No permissions are requested: the
+     system uid already holds them, which keeps this out of the privapp
+     allowlist. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="org.lineageos.nubia.udfps"
+    android:sharedUserId="android.uid.system">
+
+    <!-- No settings activity: AOD is toggled by the stock LineageOS
+         "Always-on display" switch in Settings > Display (config
+         config_dozeAlwaysOnDisplayAvailable=true). The custom "Lock screen &
+         AOD" sub-page was removed in build 48 along with its only contents
+         (fp-only mode + AOD brightness slider). -->
+    <application
+        android:label="Nubia UDFPS"
+        android:persistent="true"
+        android:directBootAware="true"
+        android:name=".UdfpsApp" />
+
+</manifest>

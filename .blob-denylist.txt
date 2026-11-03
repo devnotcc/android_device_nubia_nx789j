@@ -1,0 +1,26 @@
+# Blobs that must NEVER be shipped, with the reason. The closure loop reads this
+# and skips them, otherwise it keeps re-adding them every time it runs.
+#
+# LineageOS installs this exact filename into vendor via the compat shim
+# hardware/lineage/compat -> libprotobuf-cpp-full-21.12-vendorcompat.
+# Shipping ours too => "packaging conflict at lib64/libprotobuf-cpp-full-21.12.so"
+vendor/lib64/libprotobuf-cpp-full-21.12.so
+#
+# Platform builds it at frameworks/av/media/libeffects/hapticgenerator; the stock
+# copy links libvibratorutils, whose visibility excludes vendor prebuilts.
+vendor/lib64/soundfx/libhapticgenerator.so
+#
+# Pulls display.config V12 directly while transitively pulling V5; leaf module,
+# nothing links or dlopens it.
+vendor/lib64/libqapesdk.so
+#
+# Platform-built AIDL interface libraries - shipping prebuilts collides with the
+# source modules ("partition is different").
+vendor/lib64/android.hardware.biometrics.common-V4-ndk.so
+vendor/lib64/android.hardware.biometrics.fingerprint-V5-ndk.so
+vendor/lib64/android.hardware.biometrics.common.config.so
+vendor/lib64/android.hardware.biometrics.common.thread.so
+#
+# Nothing depends on it and it needs libskia as a shared lib (platform builds it
+# static only).
+vendor/lib64/libNubiaImageAlgorithmVD.so

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     SPDX-FileCopyrightText: The LineageOS Project
+     SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <!-- Let DozeService drive Display.STATE_DOZE so the RM692H5 AOD
+         command set actually runs. Without this, ambient_enabled is a no-op. -->
+    <bool name="doze_display_state_supported">true</bool>
+    <!-- AOD in STATE_DOZE_SUSPEND: the command-mode panel self-refreshes from its own RAM and
+         the display pipeline is off, so the SoC reaches deep sleep. In plain STATE_DOZE the
+         phone drew ~88 mA with AOD vs ~8 mA without (2026-10-18). Suspend stops frame
+         updates, so DozeUi (frameworks/base patch, patches/evox) drops to STATE_DOZE for
+         0.7 s on each minute tick to push the new clock frame. -->
+    <bool name="doze_suspend_display_state_supported">true</bool>
+</resources>

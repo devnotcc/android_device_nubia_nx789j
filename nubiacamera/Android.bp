@@ -1,0 +1,27 @@
+//
+// SPDX-FileCopyrightText: The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+// Stock nubia/RedMagic camera (com.android.camera, system/priv-app/NubiaCamera in the stock
+// dump). It drives the ZTE CHI vendor tags (com.zte.chi.*, SAT lens switching) and carries
+// the processing the vendor camera HAL alone does not apply (MFNR, night, HDR, portrait).
+// The package name is already in persist.vendor.camera.privapp.list / vendor.camera.aux.packagelist.
+// Must be preinstalled: it refuses to start without MANAGE_EXTERNAL_STORAGE, which is
+// signature|appop|preinstalled.
+
+android_app_import {
+    name: "NubiaCamera",
+    apk: "proprietary/NubiaCamera.apk",
+    certificate: "platform",
+    privileged: true,
+    dex_preopt: {
+        enabled: false,
+    },
+    required: ["privapp-permissions-nubiacamera.xml"],
+}
+
+prebuilt_etc {
+    name: "privapp-permissions-nubiacamera.xml",
+    src: "privapp-permissions-nubiacamera.xml",
+    sub_dir: "permissions",
+}

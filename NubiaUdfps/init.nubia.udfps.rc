@@ -1,0 +1,4 @@
+# DT2W / screen-off FP: zte_tpd only accepts these while the TP is not in suspend.
+# NubiaUdfps also writes them (respects Settings.Secure.DOUBLE_TAP_TO_WAKE).
+on property:sys.boot_completed=1
+    write /proc/touchscreen/screen_off_awake 1

@@ -1,0 +1,8 @@
+# System-side fixes for stock vendor services (the vendor image itself is stock).
+
+# vendor.qlm-service (QTI limits manager) has no config for this SoC: it logs
+# "Unknown target identified with soc id 618 ... service is exiting" and exits with
+# status 0 about 40 s after every start. The vendor rc does not mark it oneshot, so
+# init restarted it all day (~2000 times). Let it run once per boot and stay stopped.
+on property:init.svc.vendor.qlm-service=restarting
+    stop vendor.qlm-service

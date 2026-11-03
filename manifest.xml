@@ -1,0 +1,26 @@
+<!--
+    Device VINTF manifest.
+
+    The stock device has NO vendor/etc/vintf/manifest.xml. It ships
+    vendor/etc/vintf/manifest_sun.xml and relies on the SKU mechanism
+    (ro.boot.product.vendor.sku=sun) to pick it up. Our build invokes checkvintf
+    with an empty vendor sku, so it looks for the unsuffixed manifest.xml and
+    fails with "Cannot fetch vendor manifest". This file is the stock
+    manifest_sun.xml content, installed at the path the build actually reads.
+
+    Everything else is declared by the 111 per-HAL fragments under
+    vendor/etc/vintf/manifest/, which the individual blob modules install
+    themselves - this base manifest only carries what stock put outside a
+    fragment.
+
+    target-level 202404 is not a guess: it is what stock declares, and it is the
+    truthful value because every HAL here is the stock Android 15 / SDK 35
+    binary. Claiming a newer FCM level would assert compatibility the blobs do
+    not have.
+-->
+<manifest version="8.0" type="device" target-level="202404">
+    <hal format="aidl">
+        <name>android.hardware.gatekeeper</name>
+        <fqname>IGatekeeper/default</fqname>
+    </hal>
+</manifest>

@@ -1,0 +1,31 @@
+diff --git a/RO.xml b/RO.xml
+index 81286fa..2bfd6fb 100644
+--- a/RO.xml
++++ b/RO.xml
+@@ -62,12 +62,20 @@
+         mnc="01"
+         carrier="Vodafone RO live!"
+         apn="live.vodafone.com"
+-        mmsc=""
+-        password="vodafone"
+-        port="8080"
+-        proxy="193.230.161.231"
+-        type="default,supl"
+-        user="live"
++        authtype="0"
++        protocol="IP"
++        roaming_protocol="IP"
++        type="default,supl,dun"
++    />
++    <apn
++        mcc="226"
++        mnc="01"
++        carrier="Vodafone RO IMS"
++        apn="ims"
++        protocol="IPV4V6"
++        roaming_protocol="IP"
++        type="ims"
++        user_visible="false"
+     />
+     <apn
+         mcc="226"

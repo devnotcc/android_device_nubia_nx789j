@@ -1,0 +1,10 @@
+diff --git a/scripts/check_boot_jars/package_allowed_list.txt b/scripts/check_boot_jars/package_allowed_list.txt
+index 1115dcc..5db16f7 100644
+--- a/scripts/check_boot_jars/package_allowed_list.txt
++++ b/scripts/check_boot_jars/package_allowed_list.txt
+@@ -336,3 +336,5 @@ com\.mediatek\..*
+ # LG adds
+ com\.lge
+ com\.lge\..* 
++# nubia/ZTE feature switch used by stock nubia apps (device/nubia/nx789j)
++com\.zte\.feature

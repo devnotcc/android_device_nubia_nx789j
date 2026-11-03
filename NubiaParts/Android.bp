@@ -1,0 +1,55 @@
+//
+// SPDX-FileCopyrightText: The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+android_app {
+    name: "NubiaParts",
+    srcs: ["src/**/*.java"],
+    resource_dirs: ["res"],
+    static_libs: [
+        "org.lineageos.settings.resources",
+    ],
+    platform_apis: true,
+    certificate: "platform",
+    system_ext_specific: true,
+    optimize: {
+        enabled: false,
+    },
+}
+
+// Thermal profiles for the performance modes: stock thermal-engine.conf with the
+// skin-temperature CPU/GPU throttling thresholds raised (see thermal/gen.py).
+// init.nubia.parts.rc copies them to /data/vendor/nubia_thermal at boot and
+// bind-mounts the selected one over the vendor file.
+prebuilt_etc {
+    name: "nubia-thermal-engine-performance.conf",
+    src: "thermal/thermal-engine-performance.conf",
+    filename: "thermal-engine-performance.conf",
+    sub_dir: "nubia",
+    system_ext_specific: true,
+}
+
+prebuilt_etc {
+    name: "nubia-thermal-engine-extreme.conf",
+    src: "thermal/thermal-engine-extreme.conf",
+    filename: "thermal-engine-extreme.conf",
+    sub_dir: "nubia",
+    system_ext_specific: true,
+}
+
+prebuilt_etc {
+    name: "nubia-thermal-engine-ultra.conf",
+    src: "thermal/thermal-engine-ultra.conf",
+    filename: "thermal-engine-ultra.conf",
+    sub_dir: "nubia",
+    system_ext_specific: true,
+}
+
+prebuilt_etc {
+    name: "init.nubia.parts.rc",
+    src: "init.nubia.parts.rc",
+    filename: "init.nubia.parts.rc",
+    sub_dir: "init",
+    system_ext_specific: true,
+}

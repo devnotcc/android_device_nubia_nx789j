@@ -1,0 +1,29 @@
+# Bluetooth
+bluetooth.device.default_name=REDMAGIC 10 Pro
+
+# USB
+vendor.usb.product_string=REDMAGIC 10 Pro
+
+# Display — panel BF237_RM692H5_6P8, 1216x2688, 60/90/120/144 Hz
+ro.surface_flinger.use_content_detection_for_refresh_rate=true
+ro.surface_flinger.set_touch_timer_ms=200
+ro.surface_flinger.supports_background_blur=1
+ro.surface_flinger.has_wide_color_display=true
+ro.surface_flinger.has_HDR_display=true
+ro.surface_flinger.use_color_management=true
+ro.surface_flinger.protected_contents=true
+ro.surface_flinger.wcg_composition_dataspace=143261696
+ro.surface_flinger.max_frame_buffer_acquired_buffers=4
+ro.surface_flinger.max_virtual_display_dimension=4096
+ro.surface_flinger.force_hwc_copy_for_virtual_displays=true
+
+# Graphics
+ro.hardware.vulkan=adreno
+ro.hardware.egl=adreno
+ro.opengles.version=196610
+
+# IR
+ro.hardware.consumerir=zte
+
+# Keystore
+ro.hardware.keystore_desede=true

@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     SPDX-FileCopyrightText: The LineageOS Project
+     SPDX-License-Identifier: Apache-2.0
+-->
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:title="@string/app_name">
+
+    <PreferenceCategory android:title="@string/perf_category">
+
+        <ListPreference
+            android:key="perf_mode"
+            android:title="@string/perf_mode_title"
+            android:entries="@array/perf_mode_entries"
+            android:entryValues="@array/perf_mode_values"
+            android:defaultValue="balanced"
+            app:useSimpleSummaryProvider="true" />
+
+        <Preference
+            android:key="perf_status"
+            android:title="@string/perf_status_title"
+            android:selectable="false"
+            android:persistent="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/ambient_category">
+
+        <SwitchPreferenceCompat
+            android:key="aod_tap"
+            android:title="@string/aod_tap_title"
+            android:summary="@string/aod_tap_summary"
+            android:defaultValue="false" />
+
+        <SwitchPreferenceCompat
+            android:key="aod_lift"
+            android:title="@string/aod_lift_title"
+            android:summary="@string/aod_lift_summary"
+            android:defaultValue="false" />
+
+        <SwitchPreferenceCompat
+            android:key="aod_schedule"
+            android:title="@string/aod_schedule_title"
+            android:summary="@string/aod_schedule_summary"
+            android:defaultValue="false" />
+
+        <Preference
+            android:key="aod_schedule_start"
+            android:title="@string/aod_schedule_start_title"
+            android:dependency="aod_schedule"
+            android:persistent="false" />
+
+        <Preference
+            android:key="aod_schedule_end"
+            android:title="@string/aod_schedule_end_title"
+            android:dependency="aod_schedule"
+            android:persistent="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/charge_category">
+
+        <ListPreference
+            android:key="charge_separation"
+            android:title="@string/charge_separation_title"
+            android:entries="@array/charge_separation_entries"
+            android:entryValues="@array/charge_separation_values"
+            android:defaultValue="off"
+            app:useSimpleSummaryProvider="true" />
+
+        <Preference
+            android:key="charge_status"
+            android:selectable="false"
+            android:persistent="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/slider_category">
+
+        <ListPreference
+            android:key="slider_action"
+            android:title="@string/slider_action_title"
+            android:entries="@array/slider_action_entries"
+            android:entryValues="@array/slider_action_values"
+            android:defaultValue="fan"
+            app:useSimpleSummaryProvider="true" />
+
+        <Preference
+            android:key="slider_state"
+            android:selectable="false"
+            android:persistent="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/fan_category">
+
+        <SwitchPreferenceCompat
+            android:key="fan_manual"
+            android:title="@string/fan_manual_title"
+            android:summary="@string/fan_manual_summary"
+            android:defaultValue="false" />
+
+        <SeekBarPreference
+            android:key="fan_level"
+            android:title="@string/fan_level_title"
+            android:defaultValue="3"
+            android:max="5"
+            app:min="1"
+            app:showSeekBarValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="fan_games"
+            android:title="@string/fan_games_title"
+            android:summary="@string/fan_games_summary"
+            android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="fan_charging"
+            android:title="@string/fan_charging_title"
+            android:summary="@string/fan_charging_summary"
+            android:defaultValue="true" />
+
+        <Preference
+            android:key="fan_status"
+            android:title="@string/fan_status_title"
+            android:selectable="false"
+            android:persistent="false" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

@@ -1,0 +1,2 @@
+# QSPA gate of the stock Qualcomm telephony apps, see properties/system_ext.prop
+ro.system_ext.nx789j.qspa    u:object_r:build_prop:s0 exact string

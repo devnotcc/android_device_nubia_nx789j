@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     SPDX-FileCopyrightText: The LineageOS Project
+     SPDX-License-Identifier: Apache-2.0
+
+     Values here are taken from the NX789J stock images, not guessed.
+     Provenance is noted per block.
+-->
+<resources>
+
+    <!-- ===================== Display =====================
+         Panel: BF237_RM692H5_6P8_DSC_CMD (Raydium RM692H5, 6.8" AMOLED)
+         From dtbo_a.img entry[7], Nubia overlay fragment:
+             1216 x 2688, DSC cmd mode, 10bpc / 8bpp, slice 608x16 x2
+             timing@0 60 Hz, timing@1 90 Hz, timing@2 120 Hz, timing@3 144 Hz
+             physical 72 mm x 158 mm, peak brightness 6680 nits
+         ro.sf.lcd_density=520, ro.vendor.feature.lcd_type=oled
+    -->
+    <bool name="config_automatic_brightness_available">true</bool>
+    <!-- false, as in stock framework-res (neither nubia overlay changes it). With
+         true, every doze PULSE blanks the display first (DOZE_REQUEST_PULSE ->
+         STATE_OFF), so a fingerprint press on AOD showed ~0.5 s of black
+         (lcd_exit_lp -> lcd_off -> lcd_on) before the scan. -->
+    <bool name="config_displayBlanksAfterDoze">false</bool>
+    <!-- Auto-brightness curve, verbatim from stock framework-res.apk (aapt2 dump).
+         Needed because the stock vendor display config
+         (/vendor/etc/displayconfig/display_id_4630947220136060819.xml) carries NO
+         curve - dumpsys display on the first boot showed
+             mBrightnessLevelsNits= []  mBrightnessLevelsLuxMap= {default_normal=[0.0]}
+         so the framework falls back to these two resources, which this overlay
+         did not set: the toggle was available but auto-brightness had nothing to
+         map. DisplayValuesNits must have exactly one more entry than Levels. -->
+    <integer-array name="config_autoBrightnessLevels">
+        <item>2</item> <item>3</item> <item>4</item> <item>10</item>
+        <item>15</item> <item>50</item> <item>100</item> <item>220</item>
+        <item>420</item> <item>1500</item> <item>3000</item> <item>5000</item>
+        <item>14000</item> <item>50000</item> <item>100000</item>
+    </integer-array>
+    <array name="config_autoBrightnessDisplayValuesNits">
+        <item>5.13905</item> <item>8.87</item> <item>16.05</item> <item>20.23</item>
+        <item>29.01</item> <item>43.74</item> <item>85.94</item> <item>89.36</item>
+        <item>98.09</item> <item>116.25</item> <item>218.64</item> <item>415</item>
+        <item>650</item> <item>830.133</item> <item>1104.4</item> <item>1424.74</item>
+    </array>
+    <!-- Auto-brightness reaction time. The stock display config has no debounce
+         values, so AOSP defaults applied (brighten after 4 s, dim after 8 s),
+         which felt stuck on build 22. 1 s / 2.5 s (2026-10) plus the AOSP 10 % / 20 %
+         hysteresis made it hunt every few seconds in a steadily lit room, so both
+         are relaxed: 2 s / 5 s, and wider, lux-dependent thresholds below. -->
+    <integer name="config_autoBrightnessBrighteningLightDebounce">2000</integer>
+    <integer name="config_autoBrightnessDarkeningLightDebounce">5000</integer>
+    <!-- Ambient-lux hysteresis, tenths of a percent, one more entry than the levels.
+         Wide at low light (the stk3a7x is noisy there and sees part of the panel's own
+         light), tighter in daylight where changes are real. -->
+    <integer-array name="config_ambientThresholdLevels">
+        <item>2</item> <item>10</item> <item>50</item> <item>200</item>
+        <item>1000</item> <item>4000</item>
+    </integer-array>
+    <integer-array name="config_ambientBrighteningThresholds">
+        <item>1500</item> <item>800</item> <item>500</item> <item>350</item>
+        <item>250</item> <item>200</item> <item>150</item>
+    </integer-array>
+    <integer-array name="config_ambientDarkeningThresholds">
+        <item>800</item> <item>700</item> <item>600</item> <item>500</item>
+        <item>400</item> <item>350</item> <item>300</item>
+    </integer-array>
+    <!-- Screen-side hysteresis: ignore recalculated levels within +20 % / -30 %. -->
+    <integer-array name="config_screenBrighteningThresholds">
+        <item>200</item>
+    </integer-array>
+    <integer-array name="config_screenDarkeningThresholds">
+        <item>300</item>
+    </integer-array>
+
+    <!-- Refresh rate.
+         NOTE: config_supportedRefreshRates does NOT exist in modern AOSP — the
+         mode list comes from HWC. The live knobs are these two. Stock
+         framework-res sets config_defaultPeakRefreshRate=240, which is Nubia
+         over-setting it; the panel DT tops out at 144, so 144 is the correct
+         value here. 0 for the default means "use peak". -->
+    <integer name="config_defaultPeakRefreshRate">144</integer>
+    <integer name="config_defaultRefreshRate">0</integer>
+    <bool name="config_supportsSeamlessRefreshRateSwitching">true</bool>
+
+    <!-- Low-brightness refresh-rate lock: below 60 % of the brightness slider the panel
+         stays at 144 Hz; above it the rate follows content (SurfaceFlinger idle timer
+         300 ms / content detection, down to 60 Hz). Each rate has its own gamma table, so
+         a 60<->144 switch shows as a brightness/colour shift - visible in the dark, not in
+         bright use. The threshold is LINEAR backlight on the 0-255 scale (float = (n-1)/254):
+         slider 60% = BrightnessUtils.convertGammaToLinear(0.6)
+         = (exp((0.6 - 0.55991073) / 0.17883277) + 0.28466892) / 12 = 0.1280 -> 34.
+         (2026-10-19: 21 = slider 50%, user still saw the shift just above it, 10-23.
+         Earlier 160 = slider ~88% pinned 144 Hz almost always.) -->
+    <integer-array name="config_brightnessThresholdsOfPeakRefreshRate">
+        <item>34</item>
+    </integer-array>
+    <integer-array name="config_ambientThresholdsOfPeakRefreshRate">
+        <item>-1</item>
+    </integer-array>
+    <integer name="config_defaultRefreshRateInZone">144</integer>
+
+    <!-- ===================== Fingerprint =====================
+         Goodix G7 / gf95xx optical under-display sensor.
+
+         The sensor geometry is reported by the HAL
+         (vendor.zte.fingerprint.ztecmdaidl-service -> SensorProps.sensorLocations),
+         NOT by a framework resource: stock framework-res has
+         android:array/config_udfps_sensor_props EMPTY. So there is deliberately
+         no config_udfps_sensor_props override here.
+
+         For reference, stock vendor/build.prop reports:
+             fingerprint_sensorui_position_center_x = 608   (= 1216 / 2, exact centre)
+             fingerprint_sensorui_position_center_y = 2024
+             fingerprint_sensorui_position_center_r = 94
+    -->
+    <bool name="config_is_powerbutton_fps">false</bool>
+    <integer name="config_fingerprintMaxTemplatesPerUser">5</integer>
+
+    <!-- ===================== Doze / AOD / DT2W =====================
+         Panel DT: zte,aod_enabled + AOD on/off DSI command sets.
+         AOD backlight is /proc/driver/lcd_aod_bl (not ztedisp).
+         DT2W is /proc/touchscreen/wake_gesture (set while TP is not
+         suspended). Screen-off UDFPS: /proc/touchscreen/screen_off_awake. -->
+    <bool name="config_dozeAlwaysOnDisplayAvailable">true</bool>
+    <bool name="config_supportDoubleTapWake">true</bool>
+    <string name="config_dozeComponent" translatable="false">com.android.systemui/com.android.systemui.doze.DozeService</string>
+    <bool name="config_powerDecoupleInteractiveModeFromDisplay">true</bool>
+
+    <!-- ===================== Telephony =====================
+         Dual SIM: vendor manifest declares every android.hardware.radio.*
+         interface on both slot1 and slot2, plus vendor.zte.modem
+         IModem/instance0 + instance1. -->
+    <bool name="config_voice_capable">true</bool>
+    <bool name="config_sms_capable">true</bool>
+    <string name="config_wlan_data_service_package" translatable="false">com.qualcomm.qti.services.systemhelper</string>
+
+    <!-- ===================== Wi-Fi ===================== -->
+    <bool name="config_wifi_dual_band_support">true</bool>
+    <bool name="config_wifi_enable_wifi_firmware_debugging">true</bool>
+
+    <!-- ===================== NFC =====================
+         ST54J: st54jnfc.ko + st54jese.ko, HAL android.hardware.nfc-service-aidl -->
+    <bool name="config_nfc_hw_capability">true</bool>
+
+    <!-- ===================== USB ===================== -->
+    <bool name="config_hasUsbAccessory">true</bool>
+
+    <!-- ===================== Battery =====================
+         7050 mAh (RedMagic 10 Pro class); charger via qti_battery_charger.ko -->
+    <integer name="config_criticalBatteryWarningLevel">5</integer>
+    <integer name="config_lowBatteryWarningLevel">15</integer>
+
+    <!-- IMS: Qualcomm ImsService from stock (qti-telephony/). The carrier still has to
+         enable each feature in its carrier config. -->
+    <bool name="config_device_volte_available">true</bool>
+    <bool name="config_device_vt_available">true</bool>
+    <bool name="config_device_wfc_ims_available">true</bool>
+
+    <!-- Both slots support SIM hot-swap: do not ask for a restart when a SIM is
+         inserted or removed (the modem re-reads the card on its own). -->
+    <bool name="config_hotswapCapable">true</bool>
+
+</resources>

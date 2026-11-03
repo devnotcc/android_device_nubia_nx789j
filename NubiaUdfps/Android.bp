@@ -1,0 +1,23 @@
+//
+// SPDX-FileCopyrightText: The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+android_app {
+    name: "NubiaUdfps",
+    srcs: ["src/**/*.java"],
+    platform_apis: true,
+    certificate: "platform",
+    system_ext_specific: true,
+    optimize: {
+        enabled: false,
+    },
+}
+
+prebuilt_etc {
+    name: "init.nubia.udfps.rc",
+    src: "init.nubia.udfps.rc",
+    filename: "init.nubia.udfps.rc",
+    sub_dir: "init",
+    system_ext_specific: true,
+}

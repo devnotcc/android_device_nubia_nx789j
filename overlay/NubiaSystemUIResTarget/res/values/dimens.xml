@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     SPDX-FileCopyrightText: The LineageOS Project
+     SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <!-- Microns per pixel, used by UdfpsOverlayInteractor to size the lockscreen
+         UDFPS icon:  iconSize = udfps_icon_size (6000 um) / pixel_pitch.
+
+         AOSP's default is -1, a "must override per device" sentinel. Left at -1
+         the icon size goes negative and the stroked ic_fingerprint vector
+         collapses into a white rounded blob over the background circle.
+
+         This panel (BF237_RM692H5_6P8) is 1216 px across 72 mm:
+             72000 um / 1216 px = 59.21 um/px
+             xDpi = 1216 / (72/25.4) = 428.98   (yDpi = 2688 / (158/25.4) = 432.1)
+         Same value the NX809J port arrived at independently. -->
+    <item name="pixel_pitch" format="float" type="dimen">59.2</item>
+</resources>
