@@ -1,0 +1,39 @@
+<!--
+    NX789J TWRP (twrp-16.0): on Android 16 the recovery servicemanager builds
+    its HAL list ONLY from the recovery /system/etc/vintf manifests
+    (getRecoveryHalManifest). The HALs declared under recovery/root/vendor/etc/vintf
+    are ignored, so keymint could not register ("Failed CHECK in addService"),
+    keystore2 died with "Cannot connect to Keymint" and metadata decryption
+    failed. Same cause for gatekeeper, IBootControl ("Error getting bootctrl")
+    and IHealth (battery stuck at 100%). Declare them framework-side.
+    Verified live on 2026-09-25: with this file keymint + gatekeeper register.
+-->
+<manifest version="9.0" type="framework">
+    <hal format="aidl">
+        <name>android.hardware.security.keymint</name>
+        <version>3</version>
+        <fqname>IKeyMintDevice/default</fqname>
+        <fqname>IRemotelyProvisionedComponent/default</fqname>
+    </hal>
+    <hal format="aidl">
+        <name>android.hardware.security.secureclock</name>
+        <fqname>ISecureClock/default</fqname>
+    </hal>
+    <hal format="aidl">
+        <name>android.hardware.security.sharedsecret</name>
+        <fqname>ISharedSecret/default</fqname>
+    </hal>
+    <hal format="aidl">
+        <name>android.hardware.gatekeeper</name>
+        <fqname>IGatekeeper/default</fqname>
+    </hal>
+    <hal format="aidl">
+        <name>android.hardware.boot</name>
+        <fqname>IBootControl/default</fqname>
+    </hal>
+    <hal format="aidl">
+        <name>android.hardware.health</name>
+        <version>3</version>
+        <fqname>IHealth/default</fqname>
+    </hal>
+</manifest>
