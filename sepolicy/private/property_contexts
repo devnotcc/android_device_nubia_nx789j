@@ -1,2 +1,5 @@
 # QSPA gate of the stock Qualcomm telephony apps, see properties/system_ext.prop
 ro.system_ext.nx789j.qspa    u:object_r:build_prop:s0 exact string
+
+# Restart into Debian (NubiaParts, init.nubia.parts.rc, nubia-linux-status)
+sys.nubia.linux_    u:object_r:nubia_linux_prop:s0 prefix

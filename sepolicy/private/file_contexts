@@ -1,1 +1,2 @@
 /data/vendor/nubia_thermal(/.*)?    u:object_r:nubia_thermal_conf_file:s0
+/(system_ext|system/system_ext)/bin/nubia-linux-status    u:object_r:nubia_linux_exec:s0

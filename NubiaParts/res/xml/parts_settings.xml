@@ -130,4 +130,15 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory android:title="@string/linux_category">
+
+        <Preference
+            android:key="linux_boot"
+            android:title="@string/linux_boot_title"
+            android:summary="@string/linux_checking"
+            android:enabled="false"
+            android:persistent="false" />
+
+    </PreferenceCategory>
+
 </PreferenceScreen>

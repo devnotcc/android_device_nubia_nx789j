@@ -136,6 +136,7 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     NubiaParts \
     init.nubia.parts.rc \
+    nubia-linux-status \
     nubia-thermal-engine-performance.conf \
     nubia-thermal-engine-extreme.conf \
     nubia-thermal-engine-ultra.conf

@@ -38,3 +38,26 @@ allow init sysfs_devices_system_cpu:file w_file_perms;
 allow init proc:file w_file_perms;
 # init may not write unlabelled sysfs, nor the coresight nodes (platform neverallows).
 allow init { sysfs_type -sysfs -sysfs_devices_cs_etm }:file w_file_perms;
+
+# Restart into Debian (NubiaParts "Debian" section, init.nubia.parts.rc).
+#
+# /data/nx-linux (the nx789j-linux install) is root-only and labelled
+# system_data_root_file by the install agent. A small root helper reports
+# whether it is installed and which boot mode is set; it only reads.
+type nubia_linux, domain, coredomain;
+type nubia_linux_exec, system_file_type, exec_type, file_type;
+init_daemon_domain(nubia_linux)
+allow nubia_linux shell_exec:file rx_file_perms;
+allow nubia_linux toolbox_exec:file rx_file_perms;
+allow nubia_linux system_data_root_file:dir r_dir_perms;
+allow nubia_linux system_data_root_file:file { getattr open read };
+
+# sys.nubia.linux_* : the app asks (request), the helper and init answer.
+system_internal_prop(nubia_linux_prop)
+set_prop(nubia_linux, nubia_linux_prop)
+set_prop(system_app, nubia_linux_prop)
+
+# init itself writes the one-boot request (bootmode = linux-once) that the
+# KernelSU boot hook reads; only init may add files to system_data_root_file dirs.
+allow init system_data_root_file:dir { write add_name };
+allow init system_data_root_file:file { create open write getattr setattr };

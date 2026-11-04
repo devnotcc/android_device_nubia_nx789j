@@ -53,3 +53,12 @@ prebuilt_etc {
     sub_dir: "init",
     system_ext_specific: true,
 }
+
+// Root helper for "Restart into Debian": reports whether /data/nx-linux holds
+// an installed Debian (see linux/nubia-linux-status.sh, init.nubia.parts.rc).
+sh_binary {
+    name: "nubia-linux-status",
+    src: "linux/nubia-linux-status.sh",
+    filename: "nubia-linux-status",
+    system_ext_specific: true,
+}

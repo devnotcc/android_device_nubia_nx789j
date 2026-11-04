@@ -136,3 +136,24 @@ on property:sys.nubia.charge_separation=1
 
 on property:sys.nubia.charge_separation=0
     write /sys/class/qcom-battery/battery_charging_enabled 1
+
+# Restart into Debian. NubiaParts sets sys.nubia.linux_status=request to learn
+# whether Debian (/data/nx-linux, root-only) is installed: the helper answers
+# with ready / nohook / missing, plus sys.nubia.linux_mode. To start Debian on
+# the next boot it sets sys.nubia.linux_boot=request; init writes the one-boot
+# mode that the KernelSU boot hook (nx-linux-boot.sh) reads and resets, and
+# answers "armed". The app then restarts the phone. If Debian does not come up,
+# the next restart is Android again (the hook resets the mode first).
+service nubia_linux_status /system_ext/bin/nubia-linux-status
+    class late_start
+    user root
+    group root
+    disabled
+    oneshot
+
+on property:sys.nubia.linux_status=request
+    start nubia_linux_status
+
+on property:sys.nubia.linux_boot=request
+    write /data/nx-linux/bootmode linux-once
+    setprop sys.nubia.linux_boot armed

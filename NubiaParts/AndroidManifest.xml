@@ -14,6 +14,9 @@
          the slider (gpio-keys_nubia, switch 0x0f) changes. -->
     <protected-broadcast android:name="org.lineageos.nubia.parts.GAME_SWITCH" />
 
+    <!-- Restart into Debian (LinuxBoot) -->
+    <uses-permission android:name="android.permission.REBOOT" />
+
     <application
         android:name=".PartsApp"
         android:label="@string/app_name"

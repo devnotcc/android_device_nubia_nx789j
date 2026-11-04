@@ -93,4 +93,18 @@
         <item>extreme</item>
         <item>ultra</item>
     </string-array>
+
+    <!-- Restart into Debian (nx789j-linux install) -->
+    <string name="linux_category">Debian</string>
+    <string name="linux_boot_title">Restart into Debian</string>
+    <string name="linux_checking">Checking whether Debian is installed…</string>
+    <string name="linux_ready">Starts the Debian desktop for one boot. To come back, use Restart into Android in Debian’s app menu, or just restart the phone.</string>
+    <string name="linux_ready_default">Debian is set to start on every boot; this restarts into it.</string>
+    <string name="linux_missing">Debian isn’t installed. Install it with the NX789J Installer on a PC.</string>
+    <string name="linux_nohook">Debian is installed, but its boot script has never run (it needs KernelSU). Restarting would come back to Android.</string>
+    <string name="linux_unknown">Couldn’t check whether Debian is installed.</string>
+    <string name="linux_confirm_title">Restart into Debian?</string>
+    <string name="linux_confirm_message">The phone restarts now and starts Debian instead of Android. Calls, messages and Android apps are unavailable until you restart back into Android.</string>
+    <string name="linux_confirm_ok">Restart</string>
+    <string name="linux_failed">Couldn’t set up the Debian start, so the phone wasn’t restarted.</string>
 </resources>

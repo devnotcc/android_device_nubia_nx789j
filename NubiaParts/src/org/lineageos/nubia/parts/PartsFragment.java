@@ -6,6 +6,7 @@
 package org.lineageos.nubia.parts;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.TimePickerDialog;
 import android.content.SharedPreferences;
 import android.os.HardwarePropertiesManager;
@@ -13,6 +14,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.text.format.DateFormat;
+import android.widget.Toast;
 
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
@@ -28,6 +30,7 @@ public class PartsFragment extends PreferenceFragmentCompat {
     private Preference mFanStatus;
     private Preference mPerfStatus;
     private Preference mChargeStatus;
+    private Preference mLinuxBoot;
     private HardwarePropertiesManager mHardware;
     private HandlerThread mThread;
     private Handler mWorker;
@@ -40,6 +43,11 @@ public class PartsFragment extends PreferenceFragmentCompat {
         mFanStatus = findPreference("fan_status");
         mPerfStatus = findPreference("perf_status");
         mChargeStatus = findPreference("charge_status");
+        mLinuxBoot = findPreference("linux_boot");
+        mLinuxBoot.setOnPreferenceClickListener(p -> {
+            confirmLinuxBoot();
+            return true;
+        });
         mHardware = requireContext().getSystemService(HardwarePropertiesManager.class);
         if (!AmbientController.get(requireContext()).hasPickupSensor()) {
             findPreference(AmbientController.KEY_LIFT).setVisible(false);
@@ -79,6 +87,48 @@ public class PartsFragment extends PreferenceFragmentCompat {
         mThread.start();
         mWorker = new Handler(mThread.getLooper());
         mWorker.post(mRefresh);
+        mWorker.post(this::refreshLinux);
+    }
+
+    // Debian: the button is only enabled when the root helper reports a complete install
+    // whose boot hook has run, so a restart cannot end up in a Debian that is not there.
+    private void refreshLinux() {
+        final LinuxBoot.State state = LinuxBoot.check();
+        final Activity activity = getActivity();
+        if (activity == null) return;
+        activity.runOnUiThread(() -> {
+            mLinuxBoot.setEnabled(state.ready());
+            if (state.status == null) {
+                mLinuxBoot.setSummary(R.string.linux_unknown);
+            } else if (state.ready()) {
+                mLinuxBoot.setSummary(state.linuxByDefault()
+                        ? R.string.linux_ready_default : R.string.linux_ready);
+            } else if (LinuxBoot.NOHOOK.equals(state.status)) {
+                mLinuxBoot.setSummary(R.string.linux_nohook);
+            } else {
+                mLinuxBoot.setSummary(R.string.linux_missing);
+            }
+        });
+    }
+
+    private void confirmLinuxBoot() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.linux_confirm_title)
+                .setMessage(R.string.linux_confirm_message)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.linux_confirm_ok, (d, w) -> {
+                    mLinuxBoot.setEnabled(false);
+                    final Activity activity = requireActivity();
+                    mWorker.post(() -> {
+                        // checks again right before arming; reboots on success
+                        if (!LinuxBoot.restartIntoDebian(activity)) {
+                            activity.runOnUiThread(() -> Toast.makeText(activity,
+                                    R.string.linux_failed, Toast.LENGTH_LONG).show());
+                            refreshLinux();
+                        }
+                    });
+                })
+                .show();
     }
 
     @Override
