@@ -33,6 +33,12 @@ PRODUCT_SET_DEBUGFS_RESTRICTIONS := true
 # missing vendor service rather than require it.
 DEVICE_FRAMEWORK_COMPATIBILITY_MATRIX_FILE := $(DEVICE_PATH)/framework_compatibility_matrix.xml
 
+# The prebuilt kernel is our GKI build with CONFIG_FHANDLE=y (systemd needs
+# open_by_handle_at for the Debian install), which the 202404 kernel matrix
+# lists as "n". That requirement is only enforced on OTA; the kernel boots
+# Android fine, so skip the kernel-config half of the build-time check.
+PRODUCT_OTA_ENFORCE_VINTF_KERNEL_REQUIREMENTS := false
+
 # Dynamic partitions / super.
 #
 # BoardConfig.mk declares BOARD_SUPER_PARTITION_SIZE, the
