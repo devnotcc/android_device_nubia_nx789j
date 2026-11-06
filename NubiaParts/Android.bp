@@ -46,6 +46,18 @@ prebuilt_etc {
     system_ext_specific: true,
 }
 
+// Stock audio_policy_volumes.xml (vendor SKU sun_qssi) with a gentler media curve on the
+// speaker: the stock curve puts half volume at -28 dB, this one at about -16 dB, max unchanged.
+// init.nubia.parts.rc copies it to /data/vendor/nubia_thermal and bind-mounts it over the
+// vendor file before the audio HAL (class hal) starts.
+prebuilt_etc {
+    name: "nubia-audio-policy-volumes.xml",
+    src: "audio/audio_policy_volumes.xml",
+    filename: "audio_policy_volumes.xml",
+    sub_dir: "nubia",
+    system_ext_specific: true,
+}
+
 prebuilt_etc {
     name: "init.nubia.parts.rc",
     src: "init.nubia.parts.rc",

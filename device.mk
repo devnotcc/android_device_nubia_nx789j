@@ -139,6 +139,7 @@ PRODUCT_PACKAGES += \
     nubia-linux-status \
     nubia-thermal-engine-performance.conf \
     nubia-thermal-engine-extreme.conf \
+    nubia-audio-policy-volumes.xml \
     nubia-thermal-engine-ultra.conf
 
 # Google apps: MindTheGapps, Android 16 branch "baklava", synced to vendor/gapps

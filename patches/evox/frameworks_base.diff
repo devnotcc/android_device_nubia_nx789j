@@ -77,16 +77,25 @@ index 000000000..bfef75528
 +}
 diff --git a/media/java/android/media/audiofx/DtsAudio.java b/media/java/android/media/audiofx/DtsAudio.java
 new file mode 100755
-index 000000000..420704bf4
+index 000000000..0a459a6b1
 --- /dev/null
 +++ b/media/java/android/media/audiofx/DtsAudio.java
-@@ -0,0 +1,51 @@
+@@ -0,0 +1,141 @@
 +/*
 + * SPDX-FileCopyrightText: The LineageOS Project
 + * SPDX-License-Identifier: Apache-2.0
 + */
 +
 +package android.media.audiofx;
++
++import android.app.ActivityThread;
++import android.app.Application;
++import android.media.AudioDeviceCallback;
++import android.media.AudioDeviceInfo;
++import android.media.AudioManager;
++import android.os.Handler;
++import android.os.Looper;
++import android.util.Log;
 +
 +import java.util.UUID;
 +
@@ -106,10 +115,91 @@ index 000000000..420704bf4
 +    private static final int NUBIA_DTS_SESSION = -22;
 +    private static final int OUTPUT_MIX_SESSION = 0;
 +
++    private AudioManager mAudioManager;
++    private AudioDeviceCallback mDeviceCallback;
++
 +    public DtsAudio(UUID type, UUID uuid, int priority, int audioSession) {
 +        super(type, uuid, priority,
 +                audioSession == NUBIA_DTS_SESSION ? OUTPUT_MIX_SESSION
 +                        : audioSession);
++        if (audioSession == NUBIA_DTS_SESSION) {
++            startRouteTracking();
++        }
++    }
++
++    /**
++     * nubia's AudioFlinger runs its session -22 hook by itself and only for the routes DTS is
++     * tuned for; the app never calls setEnabled(), it only switches DTS with its own parameter.
++     * On the output mix the effect must be enabled or AudioFlinger never feeds it audio (quiet
++     * speakers), but the global music effect follows music to every output, and its speaker
++     * tuning ruins Bluetooth audio (no bass). The app marks Bluetooth as a route DTS must not
++     * process (disable_route_bluetooth) but cannot see the route on this ROM. So: enabled
++     * unless a Bluetooth audio output is connected (speaker, wired and USB stay processed).
++     */
++    private void startRouteTracking() {
++        Application app = ActivityThread.currentApplication();
++        mAudioManager = app != null ? app.getSystemService(AudioManager.class) : null;
++        if (mAudioManager == null) {
++            Log.w(TAG, "no AudioManager; DTS stays enabled on every route");
++            super.setEnabled(true);
++            return;
++        }
++        mDeviceCallback = new AudioDeviceCallback() {
++            @Override
++            public void onAudioDevicesAdded(AudioDeviceInfo[] added) {
++                updateEnabled();
++            }
++
++            @Override
++            public void onAudioDevicesRemoved(AudioDeviceInfo[] removed) {
++                updateEnabled();
++            }
++        };
++        // the callback fires once at registration with the devices already connected
++        mAudioManager.registerAudioDeviceCallback(mDeviceCallback, new Handler(Looper.getMainLooper()));
++        updateEnabled();
++    }
++
++    private static boolean isBluetoothOutput(int type) {
++        switch (type) {
++            case AudioDeviceInfo.TYPE_BLUETOOTH_A2DP:
++            case AudioDeviceInfo.TYPE_BLUETOOTH_SCO:
++            case AudioDeviceInfo.TYPE_BLE_HEADSET:
++            case AudioDeviceInfo.TYPE_BLE_SPEAKER:
++            case AudioDeviceInfo.TYPE_BLE_BROADCAST:
++            case AudioDeviceInfo.TYPE_HEARING_AID:
++                return true;
++            default:
++                return false;
++        }
++    }
++
++    private void updateEnabled() {
++        if (mAudioManager == null) return;
++        boolean bluetooth = false;
++        for (AudioDeviceInfo d : mAudioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
++            if (isBluetoothOutput(d.getType())) {
++                bluetooth = true;
++                break;
++            }
++        }
++        try {
++            if (hasControl() && getEnabled() == bluetooth) {
++                super.setEnabled(!bluetooth);
++                Log.i(TAG, bluetooth ? "Bluetooth audio connected: DTS off" : "no Bluetooth audio: DTS on");
++            }
++        } catch (IllegalStateException e) {
++            // released meanwhile
++        }
++    }
++
++    @Override
++    public void release() {
++        if (mAudioManager != null && mDeviceCallback != null) {
++            mAudioManager.unregisterAudioDeviceCallback(mDeviceCallback);
++            mDeviceCallback = null;
++        }
++        super.release();
 +    }
 +
 +    @Override

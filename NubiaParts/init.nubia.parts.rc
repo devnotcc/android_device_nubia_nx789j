@@ -19,7 +19,12 @@ on post-fs-data
     chmod 0644 /data/vendor/nubia_thermal/thermal-engine-performance.conf
     chmod 0644 /data/vendor/nubia_thermal/thermal-engine-extreme.conf
     chmod 0644 /data/vendor/nubia_thermal/thermal-engine-ultra.conf
+    # Louder media volume curve on the speaker (see Android.bp, nubia-audio-policy-volumes.xml).
+    # The audio HAL parses this file itself (policy config source: AIDL HAL) when it starts.
+    copy /system_ext/etc/nubia/audio_policy_volumes.xml /data/vendor/nubia_thermal/audio_policy_volumes.xml
+    chmod 0644 /data/vendor/nubia_thermal/audio_policy_volumes.xml
     restorecon_recursive /data/vendor/nubia_thermal
+    mount none /data/vendor/nubia_thermal/audio_policy_volumes.xml /vendor/etc/audio/sku_sun_qssi/audio_policy_volumes.xml bind
 
 on property:sys.nubia.thermal_profile=balanced
     umount /vendor/etc/thermal-engine.conf
