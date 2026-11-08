@@ -222,9 +222,16 @@ public class PartsController {
                 .getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW) / 1000;
     }
 
-    /** Battery temperature in tenths of a degree C. */
+    /**
+     * Battery temperature in tenths of a degree C. Read from the sticky battery broadcast, so it is
+     * right in any user's process: the receiver that keeps mBatteryTemp current only runs in the
+     * owner's (started at boot), and a second user's settings screen used to show 0.0 °C.
+     */
     int getBatteryTemp() {
-        return mBatteryTemp;
+        Intent battery = mContext.registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        return battery != null
+                ? battery.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, mBatteryTemp)
+                : mBatteryTemp;
     }
 
     boolean isSliderOn() {
